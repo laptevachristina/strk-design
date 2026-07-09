@@ -340,6 +340,7 @@ var BIRD_SVG="<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"16400 16300 69
   }
   if(document.fonts&&document.fonts.ready){document.fonts.ready.then(drawIcon);}
   drawIcon();
+  if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}
 })();
 
 /* ---- palette ---- */
