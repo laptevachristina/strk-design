@@ -23,6 +23,12 @@
 .series-grid{position:absolute;inset:0;display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:1fr;gap:8px;padding:26px;align-content:start}
 .series-grid .photo{width:100%;height:100%;aspect-ratio:1/1;border-radius:8px;background:var(--slot);position:relative;overflow:hidden}
 .series-grid .tag-num{top:auto;bottom:5px;left:0;right:0;text-align:center;font-size:11px;text-shadow:0 1px 3px rgba(0,0,0,.7)}
+.tl-bar{display:flex;align-items:center;gap:9px;padding:3px 0}
+.tl-bar input[type=range]{flex:1 1 auto;accent-color:var(--ui-acc);height:18px;min-width:80px}
+.tl-time{font:600 10px 'Inter';color:var(--ui-dim);min-width:84px;text-align:right;white-space:nowrap}
+/* preview timeline bar */
+.tl-bar{display:flex;align-items:center;gap:10px;padding:2px 0}
+.tl-bar input[type=range]{flex:1 1 auto;accent-color:var(--ui-acc);height:16px}
 </style>
 
 <style id="slidecss">
@@ -461,6 +467,11 @@ header .logo b{color:var(--ui-acc);font-weight:700}
   </div>
 </div>
 
+    <div class="tl-bar" id="tlBar" style="display:none">
+      <button class="hbtn iconbtn" id="tlPlay">▶</button>
+      <input type="range" id="tlScrubber" min="0" max="1000" value="0" step="10">
+      <span class="tl-time" id="tlTime">0.0с / 0.0с</span>
+    </div>
 <div class="modal" id="modal">
   <div class="mh">
     <button class="hbtn" id="modal-close">← Назад</button>
@@ -1503,6 +1514,22 @@ document.querySelectorAll('#alnmenu button[data-align]').forEach(function(b){b.a
 document.querySelectorAll('#txtmenu button').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();if(cur<0||!slides[cur])return;var el=addTextBlock(slides[cur].el,b.dataset.k);el.focus();updateFilm();pushHistory();var m=document.getElementById('txtmenu');if(m)m.classList.remove('open');});});
 document.querySelectorAll('.dd-btn').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();var t=document.getElementById(b.dataset.dd);var wasOpen=t.classList.contains('open');document.querySelectorAll('.dd.open').forEach(function(d){d.classList.remove('open');});if(!wasOpen){var r=b.getBoundingClientRect();t.classList.add('open');var mh=t.offsetHeight||160,mw=t.offsetWidth||200;var top=r.bottom+6;if(top+mh>window.innerHeight-8){top=Math.max(8,r.top-mh-6);}t.style.top=top+'px';t.style.left=Math.max(8,Math.min(r.left,window.innerWidth-mw-8))+'px';}});});
 var sb=document.getElementById('strokeBtn');if(sb)sb.addEventListener('click',function(e){e.stopPropagation();var el=(typeof lastEdit!=='undefined'&&lastEdit)||document.activeElement;if(!el||!el.getAttribute||el.getAttribute('data-edit')===null)return;el.classList.toggle('stroked');updateFilm();pushHistory();});
+/* preview timeline + font size handlers */
+(function(){
+  var pb=document.getElementById('tlPlay');
+  if(pb)pb.addEventListener('click',function(e){e.stopPropagation();if(_previewRAF){previewStop();previewReset();}else previewPlay();});
+  var sc=document.getElementById('tlScrubber');
+  if(sc){sc.addEventListener('input',function(e){e.stopPropagation();previewScrub(sc.value);});sc.addEventListener('click',function(e){e.stopPropagation();});}
+  /* font size +/- */
+  function activeEdit(){var el=lastEdit;if(!el){var a=document.activeElement;if(a&&a.getAttribute&&a.getAttribute('data-edit')!==null)el=a;}if(el&&slides[cur]&&slides[cur].el.contains(el))return el;return null;}
+  function stepFont(d){return function(e){e.stopPropagation();var el=activeEdit();if(!el)return;var cur_=parseFloat(el.dataset.fontSize)||(el.style.fontSize?parseFloat(el.style.fontSize):0);if(!cur_){var cs=getComputedStyle(el);cur_=parseFloat(cs.fontSize)||19;}var n=Math.max(8,Math.min(160,Math.round(cur_+d)));el.style.fontSize=n+'px';el.dataset.fontSize=n;updateFilm();pushHistory();};}
+  var fm=document.getElementById('fontMinusBtn'),fp=document.getElementById('fontPlusBtn');
+  if(fm)fm.addEventListener('click',stepFont(-2));
+  if(fp)fp.addEventListener('click',stepFont(2));
+  var sb=document.getElementById('strokeBtn');
+  if(sb)sb.addEventListener('click',function(e){e.stopPropagation();var el=activeEdit();if(!el)return;el.classList.toggle('stroked');updateFilm();pushHistory();});
+})();
+
 document.addEventListener('click',function(){document.querySelectorAll('.dd.open').forEach(function(d){d.classList.remove('open');});});
 
 /* ---- render ---- */
@@ -1517,6 +1544,8 @@ function fit(){
   scaler.style.width=(540*sc)+'px';scaler.style.height=(h*sc)+'px';
 }
 function render(){
+  if(typeof previewReset==='function')previewReset();
+  if(typeof previewRefreshUI==='function')previewRefreshUI();
   host.innerHTML='';
   slides.forEach(function(s){applyBg(s);});
   if(cur>=0&&slides[cur]){host.appendChild(slides[cur].el);fit();}
@@ -1570,7 +1599,7 @@ function _updateFilmNow(){
 
 window.addEventListener('resize',fit);
 if(window.visualViewport){window.visualViewport.addEventListener('resize',fit);}
-stage.addEventListener('pointerdown',function(e){if(!e.target.closest('.frame'))document.querySelectorAll('.frame.sel').forEach(function(f){f.classList.remove('sel');});if(!e.target.closest('.sticker'))document.querySelectorAll('.sticker.sel').forEach(function(s){s.classList.remove('sel');});if(!e.target.closest('.vidclip'))document.querySelectorAll('.vidclip.sel').forEach(function(v){v.classList.remove('sel');});},true);
+stage.addEventListener('pointerdown',function(e){if(typeof previewReset==='function')previewReset();if(!e.target.closest('.frame'))document.querySelectorAll('.frame.sel').forEach(function(f){f.classList.remove('sel');});if(!e.target.closest('.sticker'))document.querySelectorAll('.sticker.sel').forEach(function(s){s.classList.remove('sel');});if(!e.target.closest('.vidclip'))document.querySelectorAll('.vidclip.sel').forEach(function(v){v.classList.remove('sel');});},true);
 
 /* ---- format toggle ---- */
 document.getElementById('fmt').addEventListener('click',function(e){
@@ -1767,6 +1796,112 @@ function openStickerFx(st){
   syncStickerFxUI();
 }
 function closeStickerFx(){var t=document.getElementById('stickerfx');if(t)t.classList.remove('open');}
+
+function computeFullMs(el){
+  var items=getAnimItems(el);
+  var spinMode=hasSpinningSticker(items);
+  var fullMs;
+  if(spinMode){fullMs=SPIN_PERIOD_MS;}
+  else{
+    var fadeEnd=0;
+    items.forEach(function(it,i){if(!isTypedText(it))fadeEnd=Math.max(fadeEnd,i*ANIM_STAGGER+ANIM_DUR);});
+    fullMs=Math.max(fadeEnd,typeScheduleEndMs(buildTypeSchedule(items)))+500;
+  }
+  var vidClipMs=0;
+  el.querySelectorAll('.vidclip video').forEach(function(v){
+    var vc=v.closest('.vidclip');
+    var pe=parseFloat(vc&&vc.dataset.playEnd);
+    var endMs=(v.duration&&isFinite(v.duration))?v.duration*1000:0;
+    if(!isNaN(pe))endMs=pe;
+    if(endMs)vidClipMs=Math.max(vidClipMs,endMs);
+  });
+  if(vidClipMs>fullMs)fullMs=vidClipMs;
+  var slLen=parseFloat(el.dataset.slideLen);
+  if(!isNaN(slLen))fullMs=Math.max(fullMs,slLen*1000);
+  return fullMs;
+}
+/* ---- preview timeline (живой просмотр анимаций/очереди клипов в редакторе) ---- */
+var _previewRAF=0,_previewT0=0,_previewEl=null,_previewFull=0;
+function previewReset(){
+  if(_previewRAF){cancelAnimationFrame(_previewRAF);_previewRAF=0;}
+  var el=_previewEl||(cur>=0&&slides[cur]&&slides[cur].el);if(!el)return;
+  el.querySelectorAll('[data-edit], .frame, [data-photo], .sticker').forEach(function(e){e.style.opacity='';});
+  el.querySelectorAll('.sticker').forEach(function(st){var r=parseFloat(st.dataset.rot);st.style.transform=r?'rotate('+st.dataset.rot+'deg)':'';});
+  el.querySelectorAll('.vidclip').forEach(function(vc){var v=vc.querySelector('video');if(v){try{v.pause();}catch(_){}try{v.currentTime=0;}catch(_){}}});
+  _previewEl=null;
+}
+function previewApply(el,elapsed,fullMs){
+  var items=getAnimItems(el);
+  var anim=animStateAt(items,elapsed,hasSpinningSticker(items),buildTypeSchedule(items),fullMs);
+  items.forEach(function(it){
+    var a=anim.get(it);
+    if(a&&a.opacity<1)it.style.opacity=String(a.opacity);else it.style.opacity='';
+    if(it.classList&&it.classList.contains('sticker')&&a){
+      var rot=(parseFloat(it.dataset.rot)||0)+(a.rotOffset?a.rotOffset*180/Math.PI:0);
+      var t='rotate('+rot+'deg)';
+      if(a.scale&&a.scale!==1)t+=' scale('+a.scale+')';
+      if(a.dy)t+=' translateY('+a.dy+'px)';
+      it.style.transform=t;
+    }
+  });
+  el.querySelectorAll('.vidclip').forEach(function(vc){
+    var v=vc.querySelector('video');if(!v)return;
+    var dur=(v.duration&&isFinite(v.duration))?v.duration:0;
+    var trimS=parseFloat(vc.dataset.trimStart),trimE=parseFloat(vc.dataset.trimEnd);
+    if(isNaN(trimS))trimS=0; if(isNaN(trimE)||trimE>dur)trimE=dur;
+    var playS=parseFloat(vc.dataset.playStart),playE=parseFloat(vc.dataset.playEnd);
+    if(isNaN(playS))playS=0; if(isNaN(playE))playE=playS+(trimE-trimS)*1000;
+    var v2=vc.dataset.trimStart||vc.dataset.trimEnd||vc.dataset.playStart||vc.dataset.playEnd;
+    try{
+      if(!v2){if(v.paused)v.play()['catch'](function(){});return;}
+      if(elapsed<playS){if(!v.paused)v.pause();v.currentTime=trimS;}
+      else if(elapsed>playE){if(!v.paused)v.pause();v.currentTime=trimE;}
+      else{if(v.paused)v.play()['catch'](function(){});}
+    }catch(_){}
+  });
+}
+function previewTick(){
+  if(!_previewRAF)return;
+  var elapsed=performance.now()-_previewT0;
+  if(elapsed>=_previewFull){previewApply(_previewEl,_previewFull,_previewFull);previewStop();return;}
+  var sc=document.getElementById('tlScrubber');if(sc)sc.value=Math.round(elapsed);
+  previewUpdateLabel(elapsed,_previewFull);
+  previewApply(_previewEl,elapsed,_previewFull);
+  _previewRAF=requestAnimationFrame(previewTick);
+}
+function previewPlay(){
+  if(cur<0||!slides[cur])return;
+  var el=slides[cur].el;
+  _previewEl=el;_previewFull=computeFullMs(el);_previewT0=performance.now();
+  var sc=document.getElementById('tlScrubber');if(sc)sc.max=Math.round(_previewFull);
+  var btn=document.getElementById('tlPlay');if(btn)btn.textContent='⏸';
+  _previewRAF=requestAnimationFrame(previewTick);
+}
+function previewStop(){
+  if(_previewRAF){cancelAnimationFrame(_previewRAF);_previewRAF=0;}
+  var btn=document.getElementById('tlPlay');if(btn)btn.textContent='▶';
+}
+function previewScrub(val){
+  if(cur<0||!slides[cur])return;
+  if(_previewRAF){cancelAnimationFrame(_previewRAF);_previewRAF=0;var btn=document.getElementById('tlPlay');if(btn)btn.textContent='▶';}
+  var el=slides[cur].el;_previewEl=el;_previewFull=computeFullMs(el);
+  previewApply(el,+val,_previewFull);
+  previewUpdateLabel(+val,_previewFull);
+}
+function previewUpdateLabel(elapsed,fullMs){
+  var lab=document.getElementById('tlTime');if(lab)lab.textContent=(elapsed/1000).toFixed(1)+'с / '+(fullMs/1000).toFixed(1)+'с';
+}
+function previewHasContent(el){
+  if(!el)return false;
+  if(el.querySelector('.vidclip'))return true;
+  return el.querySelectorAll('.sticker').some?Array.prototype.some.call(el.querySelectorAll('.sticker'),function(s){return s.dataset.spin||s.dataset.stin||s.dataset.stout||s.dataset.stpulse||s.dataset.stfloat;}):false;
+}
+function previewRefreshUI(){
+  var bar=document.getElementById('tlBar');
+  var has=mode==='deck'&&cur>=0&&slides[cur]&&previewHasContent(slides[cur].el);
+  if(bar)bar.style.display=has?'':'none';
+  if(!has)previewReset();
+}
 
 function renderSlideCanvas(el,animState,videoFrameMap){
   return new Promise(function(resolve,reject){
@@ -2131,7 +2266,7 @@ var videoExportBusy=false;
 if(gifBtn)gifBtn.addEventListener('click',function(){
   /* защита от повторного тапа, пока идёт пре-рендер/запись — раньше второй тап во время подготовки
      запускал ВТОРОЙ параллельный процесс поверх первого и вешал вкладку (белый экран) */
-  if(videoExportBusy)return;
+  if(typeof previewReset==='function')previewReset();if(videoExportBusy)return;
   if(cur<0||!slides[cur])return;
   videoExportBusy=true;
   var btn=gifBtn,oldText=btn.textContent;btn.disabled=true;btn.textContent='⏳ …';
