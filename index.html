@@ -419,6 +419,35 @@ header .logo b{color:var(--ui-acc);font-weight:700}
   </div>
 </div>
 
+<div class="stickerfx dd" id="stickerfx">
+  <div class="fx-title">Анимация стикера</div>
+  <div class="cx-hint">Появление</div>
+  <div class="fx-row" id="stInChips">
+    <button class="fx-chip" data-stin="fade">Прояв.</button>
+    <button class="fx-chip" data-stin="pop">Выраст.</button>
+    <button class="fx-chip" data-stin="slide">Съезд</button>
+    <button class="fx-chip" data-stin="none">Нет</button>
+  </div>
+  <div class="cx-hint">Постоянно (можно несколько)</div>
+  <div class="fx-row" id="stLoopChips">
+    <button class="fx-chip tgl" data-stloop="spin">↻ Вращение</button>
+    <button class="fx-chip tgl" data-stloop="pulse">Пульс</button>
+    <button class="fx-chip tgl" data-stloop="float">Плавание</button>
+  </div>
+  <div class="cx-hint">Исчезновение</div>
+  <div class="fx-row" id="stOutChips">
+    <button class="fx-chip" data-stout="none">Нет</button>
+    <button class="fx-chip" data-stout="fade">Раствор.</button>
+    <button class="fx-chip" data-stout="shrink">Сжатие</button>
+  </div>
+  <div class="fx-slider"><label>Скорость появления/исчезн. <span id="stInDurV">480</span>мс</label><input type="range" id="stInDur" min="150" max="2000" step="50" value="480"></div>
+  <div class="fx-slider"><label>Скорость постоянных <span id="stLoopsV">1.0</span>×</label><input type="range" id="stLoops" min="0.3" max="3" step="0.1" value="1"></div>
+  <div class="fx-bottom">
+    <div class="cx-hint">Эффекты видны в экспорте «✨ Видео».</div>
+    <button class="fx-reset" id="stReset">Сброс</button>
+  </div>
+</div>
+
 <div class="modal" id="modal">
   <div class="mh">
     <button class="hbtn" id="modal-close">← Назад</button>
@@ -1736,7 +1765,7 @@ function renderSlideCanvas(el,animState,videoFrameMap){
       var a=animState&&animState.get(st);
       var rec={img:im,x:st.offsetLeft,y:st.offsetTop,W:st.offsetWidth,H:st.offsetHeight,
         rot:(parseFloat(st.dataset.rot)||0)*Math.PI/180+(a&&a.rotOffset||0),
-        opacity:a?a.opacity:1,dy:a?a.dy:0};
+        opacity:a?a.opacity:1,dy:a?a.dy:0,scale:a?a.scale:1};
       (st.dataset.layer==='below'?stickersBelow:stickersAbove).push(rec);
     });
     var vidsBelow=[],vidsAbove=[];
@@ -1786,6 +1815,7 @@ function renderSlideCanvas(el,animState,videoFrameMap){
           ctx.save();ctx.globalAlpha=st.opacity;
           var cx=st.x+st.W/2,cy=st.y+st.dy+st.H/2;
           ctx.translate(cx,cy);ctx.rotate(st.rot);
+          var sc=st.scale||1;if(sc!==1)ctx.scale(sc,sc);
           ctx.drawImage(st.img,-st.W/2,-st.H/2,st.W,st.H);
           ctx.restore();
         }
@@ -1878,6 +1908,38 @@ function openModal(blobs){
   var rnd=document.getElementById('cxRound');
   if(rnd)rnd.addEventListener('click',function(e){e.stopPropagation();var vc=targetVidClip();if(!vc)return;vc.dataset.cround=vc.dataset.cround==='1'?'':'1';applyVidClipFx(vc);syncVidClipFxUI();pushHistory();});
 })();
+/* sticker animation handlers */
+(function(){
+  var pt=null;
+  function pushSoon(){if(pt)return;pt=setTimeout(function(){pt=null;pushHistory();},420);}
+  /* появление (radio) */
+  document.querySelectorAll('#stInChips .fx-chip').forEach(function(c){
+    c.addEventListener('click',function(e){e.stopPropagation();var st=targetSticker();if(!st)return;st.dataset.stin=c.dataset.stin;syncStickerFxUI();updateFilm();pushSoon();});
+  });
+  /* исчезновение (radio) */
+  document.querySelectorAll('#stOutChips .fx-chip').forEach(function(c){
+    c.addEventListener('click',function(e){e.stopPropagation();var st=targetSticker();if(!st)return;st.dataset.stout=c.dataset.stout;syncStickerFxUI();updateFilm();pushSoon();});
+  });
+  /* постоянные (тумблеры) */
+  document.querySelectorAll('#stLoopChips .fx-chip').forEach(function(c){
+    c.addEventListener('click',function(e){e.stopPropagation();var st=targetSticker();if(!st)return;
+      var k=c.dataset.stloop;
+      if(k==='spin'){if(st.dataset.spin==='1'){delete st.dataset.spin;}else{st.dataset.spin='1';}}
+      else{var key='st'+k;if(st.dataset[key]==='1'){delete st.dataset[key];}else{st.dataset[key]='1';}}
+      syncStickerFxUI();updateFilm();pushSoon();
+    });
+  });
+  /* скорость появления/исчезновения */
+  var id=document.getElementById('stInDur'),idv=document.getElementById('stInDurV');
+  if(id){id.addEventListener('input',function(e){e.stopPropagation();var v=+id.value||480;if(idv)idv.textContent=Math.round(v);var st=targetSticker();if(!st)return;st.dataset.stindur=Math.round(v);updateFilm();pushSoon();});id.addEventListener('click',function(e){e.stopPropagation();});}
+  /* скорость постоянных */
+  var lp=document.getElementById('stLoops'),lpv=document.getElementById('stLoopsV');
+  if(lp){lp.addEventListener('input',function(e){e.stopPropagation();var v=+lp.value||1;if(lpv)lpv.textContent=(Math.round(v*10)/10).toFixed(1);var st=targetSticker();if(!st)return;st.dataset.stloops=v;updateFilm();pushSoon();});lp.addEventListener('click',function(e){e.stopPropagation();});}
+  /* сброс */
+  var sr=document.getElementById('stReset');
+  if(sr)sr.addEventListener('click',function(e){e.stopPropagation();var st=targetSticker();if(!st)return;delete st.dataset.stin;delete st.dataset.stout;delete st.dataset.stpulse;delete st.dataset.stfloat;delete st.dataset.spin;delete st.dataset.stindur;delete st.dataset.stloops;syncStickerFxUI();updateFilm();pushHistory();});
+})();
+
 
 
   var top=document.createElement('button');top.className='hbtn primary';top.style.cssText='margin:0 auto 8px;display:block';
@@ -1924,29 +1986,49 @@ function buildTypeSchedule(items){
   return sched;
 }
 function typeScheduleEndMs(sched){var end=0;sched.forEach(function(s){end=Math.max(end,s.start+s.dur);});return end;}
-function animStateAt(items,elapsedMs,spinMode,typeSchedule){
+function popEase(t){if(t>=1)return 1;var c1=1.70158,c3=c1+1;return 1+c3*Math.pow(t-1,3)+c1*Math.pow(t-1,2);}
+function animStateAt(items,elapsedMs,spinMode,typeSchedule,fullMs){
   var state=new Map();
   items.forEach(function(it,i){
-    var opacity=1,dy=0,revealChars=null,typing=false;
-    /* marked text keeps typing even while a sticker spins — только обычный fade+slide отключается в spin-режиме */
+    var opacity=1,dy=0,scale=1,revealChars=null,typing=false,rotOffset=0;
+    var isSt=it.classList&&it.classList.contains('sticker');
     var ts=typeSchedule&&typeSchedule.get(it);
     if(ts){
       var tt=(elapsedMs-ts.start)/ts.dur;
       tt=Math.max(0,Math.min(1,tt));
       revealChars=Math.round(tt*ts.full);
       typing=tt<1&&elapsedMs>=ts.start;
-    }else if(!spinMode){
+    }else if(isSt){
       var startMs=i*ANIM_STAGGER;
-      var t=(elapsedMs-startMs)/ANIM_DUR;
+      var lp=parseFloat(it.dataset.stloops);if(isNaN(lp)||lp<0.1)lp=1;
+      /* появление */
+      var inType=it.dataset.stin!==undefined?it.dataset.stin:'fade';
+      var inDur=parseFloat(it.dataset.stindur)||ANIM_DUR;
+      var ti=Math.max(0,Math.min(1,(elapsedMs-startMs)/inDur));
+      var inE=1-Math.pow(1-ti,3);
+      if(inType==='fade'){opacity=inE;}
+      else if(inType==='pop'){scale=popEase(ti);opacity=Math.min(1,ti*1.5);}
+      else if(inType==='slide'){dy=(1-inE)*-70;opacity=inE;}
+      /* иначе 'none' — сразу виден */
+      /* постоянно: вращение */
+      if(it.dataset.spin==='1'){rotOffset=(elapsedMs/(SPIN_PERIOD_MS/lp))*2*Math.PI;}
+      /* постоянно: пульс / плавание */
+      if(it.dataset.stpulse==='1'){scale*=1+0.06*Math.sin(elapsedMs/(520/lp));}
+      if(it.dataset.stfloat==='1'){dy+=8*Math.sin(elapsedMs/(620/lp));}
+      /* исчезновение в конце */
+      if(fullMs&&it.dataset.stout&&it.dataset.stout!=='none'){
+        var to=Math.max(0,Math.min(1,(fullMs-elapsedMs)/inDur));
+        if(it.dataset.stout==='fade'){opacity*=to;}
+        else if(it.dataset.stout==='shrink'){scale*=to;opacity*=to;}
+      }
+    }else if(!spinMode){
+      var sMs=i*ANIM_STAGGER;
+      var t=(elapsedMs-sMs)/ANIM_DUR;
       t=Math.max(0,Math.min(1,t));
       var eased=1-Math.pow(1-t,3);
       opacity=eased;dy=0;
     }
-    var rotOffset=0;
-    if(it.classList&&it.classList.contains('sticker')&&it.dataset.spin==='1'){
-      rotOffset=(elapsedMs/SPIN_PERIOD_MS)*2*Math.PI;
-    }
-    state.set(it,{opacity:opacity,dy:dy,rotOffset:rotOffset,revealChars:revealChars,typing:typing});
+    state.set(it,{opacity:opacity,dy:dy,scale:scale,rotOffset:rotOffset,revealChars:revealChars,typing:typing});
   });
   return state;
 }
@@ -2104,7 +2186,7 @@ if(gifBtn)gifBtn.addEventListener('click',function(){
         var elapsed=performance.now()-t0;
         if(elapsed>=fullMs||elapsed>fullMs+8000){resumeClips();recorder.stop();return;} /* +8с — жёсткий предохранитель */
         showProgress(prepWeight+Math.min(1,elapsed/fullMs)*(1-prepWeight));
-        var anim=animStateAt(items,elapsed,spinMode,typeSchedule);
+        var anim=animStateAt(items,elapsed,spinMode,typeSchedule,fullMs);
         var videoFrameMap=new Map();
         prepared.forEach(function(p){
           if(!p.res.frames.length)return;
