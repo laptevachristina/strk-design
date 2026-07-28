@@ -1060,6 +1060,7 @@ function hydrateVideoClip(vc){
 function selectVideoClip(vc){
   document.querySelectorAll('.vidclip.sel').forEach(function(s){if(s!==vc)s.classList.remove('sel');});
   vc.classList.add('sel');
+  if(typeof openVidClipFx==='function')openVidClipFx(vc);
 }
 function wireVideoClip(vc){
   if(vc.__w)return;vc.__w=1;
