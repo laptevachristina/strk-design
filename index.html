@@ -399,6 +399,26 @@ header .logo b{color:var(--ui-acc);font-weight:700}
   </div>
 </div>
 
+<div class="vidclipfx dd" id="vidclipfx">
+  <div class="fx-title">Видео-клип <span class="cx-hint" id="cxDur"></span></div>
+  <div class="fx-slider"><label>Обрезка: старт <span id="cxTrimSV">0.0</span>с</label><input type="range" id="cxTrimS" min="0" max="100" step="0.1" value="0"></div>
+  <div class="fx-slider"><label>Обрезка: конец <span id="cxTrimEV">0.0</span>с</label><input type="range" id="cxTrimE" min="0" max="100" step="0.1" value="100"></div>
+  <div class="fx-slider"><label>Оживает на <span id="cxPlaySV">0.0</span>с</label><input type="range" id="cxPlayS" min="0" max="60" step="0.1" value="0"></div>
+  <div class="fx-slider"><label>Замирает на <span id="cxPlayEV">0.0</span>с</label><input type="range" id="cxPlayE" min="0" max="60" step="0.1" value="0"></div>
+  <div class="fx-slider"><label>Длина слайда <span id="cxSlideLenV">—</span>с</label><input type="range" id="cxSlideLen" min="0.5" max="30" step="0.1" value="3"></div>
+  <div class="fx-slider"><label>Зум (кадрирование) <span id="cxZoomV">1.0</span>×</label><input type="range" id="cxZoom" min="1" max="4" step="0.05" value="1"></div>
+  <div class="fx-slider"><label>Сдвиг по горизонтали <span id="cxPanXV">0</span></label><input type="range" id="cxPanX" min="-1" max="1" step="0.05" value="0"></div>
+  <div class="fx-slider"><label>Сдвиг по вертикали <span id="cxPanYV">0</span></label><input type="range" id="cxPanY" min="-1" max="1" step="0.05" value="0"></div>
+  <div class="fx-row">
+    <button class="fx-chip" id="cxLayer">Слой: выше текста</button>
+    <button class="fx-chip" id="cxRound">◯ Круг</button>
+  </div>
+  <div class="fx-bottom">
+    <div class="cx-hint">До/после окна — стоп-кадр. Эффект виден в экспорте «✨ Видео».</div>
+    <button class="fx-reset" id="cxReset">Сброс</button>
+  </div>
+</div>
+
 <div class="modal" id="modal">
   <div class="mh">
     <button class="hbtn" id="modal-close">← Назад</button>
@@ -1725,7 +1745,7 @@ function renderSlideCanvas(el,animState,videoFrameMap){
       var src=override||v;
       var vw=override?override.width:v.videoWidth,vh=override?override.height:v.videoHeight;
       if(!vw||!vh)return;
-      var rec={src:src,vw:vw,vh:vh,x:vc.offsetLeft,y:vc.offsetTop,W:vc.offsetWidth,H:vc.offsetHeight};
+      var vcs=getComputedStyle(vc);var rec={src:src,vw:vw,vh:vh,x:vc.offsetLeft,y:vc.offsetTop,W:vc.offsetWidth,H:vc.offsetHeight,rad:parseFloat(vcs.borderTopLeftRadius)||14,round:vc.classList.contains('cround'),zoom:parseFloat(vc.dataset.czoom)||1,panX:parseFloat(vc.dataset.cpanx)||0,panY:parseFloat(vc.dataset.cpany)||0};
       (vc.dataset.layer==='below'?vidsBelow:vidsAbove).push(rec);
     });
     var origTexts=el.querySelectorAll('[data-edit]');
@@ -1827,6 +1847,37 @@ function openModal(blobs){
   var rs=document.getElementById('fxReset');
   if(rs)rs.addEventListener('click',function(e){e.stopPropagation();var el=targetPhoto();if(!el)return;el.dataset.fxpreset='none';delete el.dataset.fxbright;delete el.dataset.fxcontrast;delete el.dataset.fxsat;delete el.dataset.fxwarm;applyPhotoFx(el);syncPhotoFxUI();updateFilm();pushHistory();});
 })();
+/* video clip fx handlers */
+(function(){
+  var pt=null;
+  function pushSoon(){if(pt)return;pt=setTimeout(function(){pt=null;pushHistory();},420);}
+  function f1(x){return(Math.round(x*10)/10).toFixed(1);}
+  function bind(id,vid,applier){
+    var inp=document.getElementById(id),sp=document.getElementById(vid);if(!inp)return;
+    inp.addEventListener('input',function(e){e.stopPropagation();var val=+inp.value||0;if(sp)sp.textContent=f1(val);var vc=targetVidClip();if(!vc)return;applier(vc,val);updateFilm();pushSoon();});
+    inp.addEventListener('click',function(e){e.stopPropagation();});
+  }
+  bind('cxTrimS','cxTrimSV',function(vc,val){vc.dataset.trimStart=val;});
+  bind('cxTrimE','cxTrimEV',function(vc,val){vc.dataset.trimEnd=val;});
+  bind('cxPlayS','cxPlaySV',function(vc,val){vc.dataset.playStart=Math.round(val*1000);});
+  bind('cxPlayE','cxPlayEV',function(vc,val){vc.dataset.playEnd=Math.round(val*1000);});
+  var slInp=document.getElementById('cxSlideLen'),slSp=document.getElementById('cxSlideLenV');
+  if(slInp){slInp.addEventListener('input',function(e){e.stopPropagation();var val=+slInp.value||0;if(slSp)slSp.textContent=f1(val);if(!slides[cur])return;if(val>=0.5)slides[cur].el.dataset.slideLen=val;else delete slides[cur].el.dataset.slideLen;updateFilm();pushSoon();});slInp.addEventListener('click',function(e){e.stopPropagation();});}
+  var lb=document.getElementById('cxLayer');
+  if(lb)lb.addEventListener('click',function(e){e.stopPropagation();var vc=targetVidClip();if(!vc)return;var below=vc.classList.contains('layer-below');if(below){vc.classList.remove('layer-below');vc.dataset.layer='above';}else{vc.classList.add('layer-below');vc.dataset.layer='below';}if(typeof updateLayerDOM==='function')updateLayerDOM(vc);syncVidClipFxUI();updateFilm();pushHistory();});
+  var cr=document.getElementById('cxReset');
+  if(cr)cr.addEventListener('click',function(e){e.stopPropagation();var vc=targetVidClip();if(!vc)return;delete vc.dataset.trimStart;delete vc.dataset.trimEnd;delete vc.dataset.playStart;delete vc.dataset.playEnd;delete vc.dataset.czoom;delete vc.dataset.cpanx;delete vc.dataset.cpany;delete vc.dataset.cround;if(slides[cur])delete slides[cur].el.dataset.slideLen;applyVidClipFx(vc);syncVidClipFxUI();updateFilm();pushHistory();});
+  /* кадрирование: зум / pan / круг */
+  function cbind(id,vid,fn,fmt){var inp=document.getElementById(id),sp=document.getElementById(vid);if(!inp)return;
+    inp.addEventListener('input',function(e){e.stopPropagation();var v=+inp.value;if(sp)sp.textContent=fmt?fmt(v):v;var vc=targetVidClip();if(!vc)return;fn(vc,v);applyVidClipFx(vc);pushSoon();});
+    inp.addEventListener('click',function(e){e.stopPropagation();});}
+  cbind('cxZoom','cxZoomV',function(vc,v){vc.dataset.czoom=v;},function(v){return(Math.round(v*20)/20).toFixed(2);});
+  cbind('cxPanX','cxPanXV',function(vc,v){vc.dataset.cpanx=v;},function(v){return Math.round(v*100);});
+  cbind('cxPanY','cxPanYV',function(vc,v){vc.dataset.cpany=v;},function(v){return Math.round(v*100);});
+  var rnd=document.getElementById('cxRound');
+  if(rnd)rnd.addEventListener('click',function(e){e.stopPropagation();var vc=targetVidClip();if(!vc)return;vc.dataset.cround=vc.dataset.cround==='1'?'':'1';applyVidClipFx(vc);syncVidClipFxUI();pushHistory();});
+})();
+
 
   var top=document.createElement('button');top.className='hbtn primary';top.style.cssText='margin:0 auto 8px;display:block';
   top.textContent=canPhoto?(blobs.length>1?('⬇ Сохранить все в Фото ('+blobs.length+')'):'⬇ Сохранить в Фото'):(blobs.length>1?('⬇ Скачать все ('+blobs.length+')'):'⬇ Скачать');
