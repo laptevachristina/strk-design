@@ -15,6 +15,10 @@
 .stickerfx.dd{display:none;position:fixed;z-index:60;min-width:236px;max-width:88vw;background:var(--ui-panel);border:1px solid var(--ui-line);padding:7px;border-radius:11px;box-shadow:0 12px 30px rgba(0,0,0,.5);flex-direction:column;gap:5px}
 .stickerfx.dd.open{display:flex}
 .fx-chip.tgl.on{background:var(--ui-acc);border-color:var(--ui-acc);color:#fff}
+/* контур текста + дублировать слайд */
+[data-edit].stroked{paint-order:stroke fill;-webkit-text-stroke:2px #1c1c1e;text-stroke:2px #1c1c1e}
+.chip .dup{position:absolute;top:2px;left:3px;z-index:2;color:#fff;background:rgba(0,0,0,.45);border-radius:5px;width:18px;height:18px;font-size:11px;display:none;align-items:center;justify-content:center}
+.chip:hover .dup{display:flex}
 </style>
 
 <style id="slidecss">
@@ -332,6 +336,7 @@ header .logo b{color:var(--ui-acc);font-weight:700}
       <div class="fmtbar">
         <button data-cmd="italic"><em>Курсив</em></button>
         <button data-cmd="underline"><span class="u">Подчеркнуть</span></button>
+        <button class="alnbtn" id="strokeBtn" title="Контур текста">▭ Контур</button>
         <button class="dd-btn alnbtn" id="alignBtn" data-dd="alnmenu" title="Выравнивание"><svg viewBox="0 0 18 12" width="15" height="10" fill="currentColor"><rect x="0" y="0" width="18" height="2"/><rect x="3.5" y="5" width="11" height="2"/><rect x="2" y="10" width="14" height="2"/></svg> ▾</button>
         <button class="dd-btn" id="addTextBtn" data-dd="txtmenu">＋ Текст ▾</button>
       </div>
@@ -638,6 +643,12 @@ function makeSlide(type,bg,html,f916){
   }
   wireSlide(el);
   return el;
+}
+function duplicateSlide(){
+  if(cur<0||!slides[cur])return;
+  var s=slides[cur];
+  var copy=makeSlide(s.type,s.el.dataset.bg,s.el.innerHTML,s.el.classList.contains('f916'));
+  slides.splice(cur+1,0,copy);cur=cur+1;render();pushHistory();
 }
 function addSlide(type){
   var s={type:type,el:makeSlide(type)};
@@ -1481,6 +1492,7 @@ document.addEventListener('focusin',function(e){var el=e.target;if(el&&el.getAtt
 document.querySelectorAll('#alnmenu button[data-align]').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();var el=lastEdit;if(!el){var a=document.activeElement;if(a&&a.getAttribute&&a.getAttribute('data-edit')!==null)el=a;}if(el&&typeof slides!=='undefined'&&slides[cur]&&slides[cur].el.contains(el)){el.style.textAlign=b.dataset.align;if(typeof updateFilm==='function')updateFilm();if(typeof pushHistory==='function')pushHistory();}var m=document.getElementById('alnmenu');if(m)m.classList.remove('open');});});
 document.querySelectorAll('#txtmenu button').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();if(cur<0||!slides[cur])return;var el=addTextBlock(slides[cur].el,b.dataset.k);el.focus();updateFilm();pushHistory();var m=document.getElementById('txtmenu');if(m)m.classList.remove('open');});});
 document.querySelectorAll('.dd-btn').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();var t=document.getElementById(b.dataset.dd);var wasOpen=t.classList.contains('open');document.querySelectorAll('.dd.open').forEach(function(d){d.classList.remove('open');});if(!wasOpen){var r=b.getBoundingClientRect();t.classList.add('open');var mh=t.offsetHeight||160,mw=t.offsetWidth||200;var top=r.bottom+6;if(top+mh>window.innerHeight-8){top=Math.max(8,r.top-mh-6);}t.style.top=top+'px';t.style.left=Math.max(8,Math.min(r.left,window.innerWidth-mw-8))+'px';}});});
+var sb=document.getElementById('strokeBtn');if(sb)sb.addEventListener('click',function(e){e.stopPropagation();var el=(typeof lastEdit!=='undefined'&&lastEdit)||document.activeElement;if(!el||!el.getAttribute||el.getAttribute('data-edit')===null)return;el.classList.toggle('stroked');updateFilm();pushHistory();});
 document.addEventListener('click',function(){document.querySelectorAll('.dd.open').forEach(function(d){d.classList.remove('open');});});
 
 /* ---- render ---- */
@@ -1536,9 +1548,9 @@ function _updateFilmNow(){
     mini.style.transform='scale('+scMini+')';mini.style.pointerEvents='none';mini.appendChild(clone);
     chip.appendChild(mini);
     var idx=document.createElement('div');idx.className='idx';idx.textContent=(i+1);chip.appendChild(idx);
-    var del=document.createElement('div');del.className='del';del.textContent='✕';chip.appendChild(del);
+    var del=document.createElement('div');del.className='del';del.textContent='✕';chip.appendChild(del);    var dup=document.createElement('div');dup.className='dup';dup.textContent='⧉';chip.appendChild(dup);
     chip.addEventListener('click',function(e){
-      if(e.target.classList.contains('del')){slides.splice(i,1);if(cur>=slides.length)cur=slides.length-1;render();pushHistory();return;}
+      if(e.target.classList.contains('del')){slides.splice(i,1);if(cur>=slides.length)cur=slides.length-1;render();pushHistory();return;}if(e.target.classList.contains('dup')){cur=i;duplicateSlide();return;}
       cur=i;render();
     });
     film.appendChild(chip);
