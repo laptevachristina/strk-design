@@ -375,7 +375,7 @@ header .logo b{color:var(--ui-acc);font-weight:700}
   <div class="imgs" id="imgs"></div>
 </div>
 
-<input type="file" id="filepick" accept="image/*" style="position:fixed;top:0;left:0;width:1px;height:1px;opacity:0">
+<input type="file" id="filepick" accept="image/*" multiple style="position:fixed;top:0;left:0;width:1px;height:1px;opacity:0">
 <div id="measurer" style="position:fixed;left:-99999px;top:0;width:540px;pointer-events:none;opacity:0"></div>
 
 <script>
@@ -643,6 +643,7 @@ filepick.addEventListener('change',function(){
   if(pickMode==='grid'){var r=new FileReader();r.onload=function(){feed[gridTarget]=r.result;saveFeed();renderGrid();};r.readAsDataURL(filepick.files[0]);pickMode='slide';return;}
   if(pickMode==='sticker'){var f=filepick.files[0];var r2=new FileReader();r2.onload=function(){addSticker(r2.result);};r2.readAsDataURL(f);pickMode='slide';return;}
   if(pickMode==='vidclip'){var vf=filepick.files[0];pickMode='slide';addVideoClip(vf);return;}
+  if(pickMode==='slide'&&filepick.files.length>1&&cur>=0&&slides[cur]){var files=Array.prototype.slice.call(filepick.files);var slots=Array.prototype.slice.call(slides[cur].el.querySelectorAll('[data-photo]:not(.has-img), .frame:not(.has-img)'));files.forEach(function(f,i){if(slots[i])setPhoto(slots[i],f);});pickTarget=null;return;}
   if(pickTarget)setPhoto(pickTarget,filepick.files[0]);
 });
 var addStickerBtn=document.getElementById('addStickerBtn');
