@@ -19,6 +19,10 @@
 [data-edit].stroked{paint-order:stroke fill;-webkit-text-stroke:2px #1c1c1e;text-stroke:2px #1c1c1e}
 .chip .dup{position:absolute;top:2px;left:3px;z-index:2;color:#fff;background:rgba(0,0,0,.45);border-radius:5px;width:18px;height:18px;font-size:11px;display:none;align-items:center;justify-content:center}
 .chip:hover .dup{display:flex}
+/* series: вся серия одним слайдом (сетка 4 колонки) */
+.series-grid{position:absolute;inset:0;display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:1fr;gap:8px;padding:26px;align-content:start}
+.series-grid .photo{width:100%;height:100%;aspect-ratio:1/1;border-radius:8px;background:var(--slot);position:relative;overflow:hidden}
+.series-grid .tag-num{top:auto;bottom:5px;left:0;right:0;text-align:center;font-size:11px;text-shadow:0 1px 3px rgba(0,0,0,.7)}
 </style>
 
 <style id="slidecss">
@@ -355,7 +359,7 @@ header .logo b{color:var(--ui-acc);font-weight:700}
         <button data-t="strips3">☰ 3 полосы</button>
         <button data-t="cta">➜ С кнопкой</button>
         <button data-t="final">✦ Финал</button>
-      </div>
+      <button data-t="series">▦ Серия 17</button></div>
     </div>
     <div>
       <div class="row-title">Слайды <span id="cnt"></span></div>
@@ -558,6 +562,12 @@ var stage=document.getElementById('stage');
 /* ---- templates ---- */
 function tpl(type){
   var T={
+  series:(function(){
+    var base=5501+Math.floor(Math.random()*40);
+    var cells='';
+    for(var i=0;i<17;i++){var n=base+i*3;cells+='<div class="photo gcell" data-photo><div class="ph-label">'+(i+1)+'</div><span class="tag-num">'+n+'</span></div>';}
+    return '<div class="series-grid">'+cells+'</div>';
+  })(),
   cover:
     '<div class="photo cover-photo" data-photo><div class="ph-label">добавь своё фото на весь слайд</div></div>'+
     '<div class="cover-scrim"></div>'+
@@ -626,7 +636,7 @@ function tpl(type){
   };
   return T[type]||T.quote;
 }
-var NAMES={cover:'Обложка',quote:'Цитата',collage:'Коллаж',cta:'Кнопка',final:'Финал',splitB:'Фото сверху',splitT:'Фото снизу',splitL:'Фото справа',splitR:'Фото слева',grid4:'Сетка 4',strips3:'3 полосы'};
+var NAMES={cover:'Обложка',quote:'Цитата',collage:'Коллаж',cta:'Кнопка',final:'Финал',splitB:'Фото сверху',splitT:'Фото снизу',splitL:'Фото справа',splitR:'Фото слева',grid4:'Сетка 4',strips3:'3 полосы',series:'Серия 17'};
 
 /* ---- build ---- */
 function makeSlide(type,bg,html,f916){
