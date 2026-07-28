@@ -141,8 +141,9 @@ em{font-style:italic}
 .mini .sticker.sel{outline:none!important}
 .mini .sticker .mv-handle,.mini .sticker .mv-del,.mini .sticker .tx-resize,.mini .sticker .rot-handle{display:none!important}
 
-.vidclip{position:absolute;touch-action:none;cursor:move}
-.vidclip video{width:100%;height:100%;object-fit:contain;background:#000;pointer-events:none;display:block}
+.vidclip{position:absolute;touch-action:none;cursor:move;border-radius:14px;overflow:hidden}
+.vidclip video{width:100%;height:100%;object-fit:cover;background:#000;pointer-events:none;display:block;transform-origin:center center}
+.vidclip.cround{border-radius:50%}
 .vidclip .mv-handle,.vidclip .mv-del,.vidclip .tx-resize,.vidclip .layer-toggle{display:none}
 .vidclip.sel{outline:2px dashed var(--sage);outline-offset:6px}
 .vidclip.sel .mv-handle,.vidclip.sel .mv-del,.vidclip.sel .tx-resize,.vidclip.sel .layer-toggle{display:block}
@@ -1767,11 +1768,15 @@ function renderSlideCanvas(el,animState,videoFrameMap){
           ctx.drawImage(st.img,-st.W/2,-st.H/2,st.W,st.H);
           ctx.restore();
         }
-        function drawVid(rec){
+                function drawVid(rec){
           ctx.save();
+          if(rec.round){var cx=rec.x+rec.W/2,cy=rec.y+rec.H/2,rr=Math.min(rec.W,rec.H)/2;ctx.beginPath();ctx.arc(cx,cy,rr+1,0,7);ctx.clip();}
+          else{roundRectPath(ctx,rec.x,rec.y,rec.W,rec.H,rec.rad||14);ctx.clip();}
           ctx.fillStyle='#000';ctx.fillRect(rec.x,rec.y,rec.W,rec.H);
-          var scale=Math.min(rec.W/rec.vw,rec.H/rec.vh);
-          var dw=rec.vw*scale,dh=rec.vh*scale,dx=rec.x+(rec.W-dw)/2,dy=rec.y+(rec.H-dh)/2;
+          var zoom=rec.zoom||1,panX=rec.panX||0,panY=rec.panY||0;
+          var scale=Math.max(rec.W/rec.vw,rec.H/rec.vh)*zoom;
+          var dw=rec.vw*scale,dh=rec.vh*scale;
+          var dx=rec.x+(rec.W-dw)/2+panX*rec.W*0.45,dy=rec.y+(rec.H-dh)/2+panY*rec.H*0.45;
           try{ctx.drawImage(rec.src,dx,dy,dw,dh);}catch(e){}
           ctx.restore();
         }
@@ -1988,9 +1993,12 @@ if(gifBtn)gifBtn.addEventListener('click',function(){
     /* если на слайде есть вставленный видео-клип — видео должно успеть проиграться целиком внутри записи */
     var vidClipMs=0;
     el.querySelectorAll('.vidclip video').forEach(function(v){
-      if(v.duration&&isFinite(v.duration))vidClipMs=Math.max(vidClipMs,v.duration*1000);
+      var vc=v.closest('.vidclip');var pe=parseFloat(vc&&vc.dataset.playEnd);
+      var endMs=(v.duration&&isFinite(v.duration))?v.duration*1000:0;if(!isNaN(pe))endMs=pe;
+      if(endMs)vidClipMs=Math.max(vidClipMs,endMs);
     });
     if(vidClipMs>fullMs)fullMs=vidClipMs;
+    var slLen=parseFloat(el.dataset.slideLen);if(!isNaN(slLen))fullMs=Math.max(fullMs,slLen*1000);
     var w=540,h=el.classList.contains('f916')?960:675,ES=2;
     var mime=pickVideoMime();
     var capFn=null;
@@ -2048,8 +2056,22 @@ if(gifBtn)gifBtn.addEventListener('click',function(){
         var videoFrameMap=new Map();
         prepared.forEach(function(p){
           if(!p.res.frames.length)return;
-          var idx=Math.floor((elapsed/1000)*p.res.fps)%p.res.frames.length;
-          var bmp=p.res.frames[idx];
+          var frames=p.res.frames,fps=p.res.fps,vc=p.v.closest('.vidclip');
+          var dur=p.v.duration||frames.length/fps;
+          var trimS=parseFloat(vc&&vc.dataset.trimStart),trimE=parseFloat(vc&&vc.dataset.trimEnd);
+          if(isNaN(trimS))trimS=0; if(isNaN(trimE)||trimE>dur)trimE=dur;
+          var playS=parseFloat(vc&&vc.dataset.playStart),playE=parseFloat(vc&&vc.dataset.playEnd);
+          if(isNaN(playS))playS=0; if(isNaN(playE))playE=playS+(trimE-trimS)*1000;
+          var v2=vc&&(vc.dataset.trimStart||vc.dataset.trimEnd||vc.dataset.playStart||vc.dataset.playEnd);
+          var idx;
+          if(!v2){idx=Math.floor((elapsed/1000)*fps)%frames.length;}
+          else{
+            var t0i=Math.round(trimS*fps),t1i=Math.min(frames.length-1,Math.round(trimE*fps));
+            if(elapsed<playS){idx=t0i;}
+            else if(elapsed>playE){idx=t1i;}
+            else{var prog=(elapsed-playS)/Math.max(1,(playE-playS));idx=t0i+Math.round(prog*Math.max(0,(t1i-t0i)));}
+          }
+          var bmp=frames[idx];
           if(bmp)videoFrameMap.set(p.v,bmp);
         });
         withTimeout(renderSlideCanvas(el,anim,videoFrameMap),1200).then(function(canvas){
