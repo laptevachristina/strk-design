@@ -1996,9 +1996,9 @@ function renderSlideCanvas(el,animState,videoFrameMap){
         vidsBelow.forEach(drawVid);
         ctx.globalAlpha=1;
         ctx.drawImage(overlay,0,0,w,h);
-        stickersAbove.forEach(drawSticker);
         vidsAbove.forEach(drawVid);
-        resolve(c);
+
+        stickersAbove.forEach(drawSticker);        resolve(c);
       }catch(e){reject(e);}
     };
     overlay.onerror=function(){reject(new Error('render'));};
