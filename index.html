@@ -762,6 +762,8 @@ filepick.addEventListener('change',function(){
   if(pickMode==='grid'){var r=new FileReader();r.onload=function(){feed[gridTarget]=r.result;saveFeed();renderGrid();};r.readAsDataURL(filepick.files[0]);pickMode='slide';return;}
   if(pickMode==='sticker'){var f=filepick.files[0];var r2=new FileReader();r2.onload=function(){addSticker(r2.result);};r2.readAsDataURL(f);pickMode='slide';return;}
   if(pickMode==='vidclip'){var vf=filepick.files[0];pickMode='slide';addVideoClip(vf);return;}
+  /* long-press замена: фото/видео в существующий слот, пропорции и масштаб сохраняются */
+  if(pickMode==='replace'){var rf=filepick.files[0];var rt=pickTarget;pickMode='slide';pickTarget=null;if(!rt||!rf)return;if(rt.classList.contains('vidclip')){replaceVideo(rt,rf);}else{setPhotoKeep(rt,rf);}return;}
   if(pickMode==='slide'&&filepick.files.length>1&&cur>=0&&slides[cur]){var files=Array.prototype.slice.call(filepick.files);var slots=Array.prototype.slice.call(slides[cur].el.querySelectorAll('[data-photo]:not(.has-img), .frame:not(.has-img)'));files.forEach(function(f,i){if(slots[i])setPhoto(slots[i],f);});pickTarget=null;return;}
   if(pickTarget)setPhoto(pickTarget,filepick.files[0]);
 });
@@ -1202,7 +1204,37 @@ function setPhoto(slot,file){
     updateFilm();pushHistory();
   };
   r.readAsDataURL(file);
+}/* long-press замена фото/видео с сохранением пропорций и масштаба */
+function setPhotoKeep(slot,file){
+  var r=new FileReader();
+  r.onload=function(){
+    var img=slot.querySelector('.ph-img');
+    img.src=r.result;img.style.display='block';
+    slot.classList.add('has-img');
+    applyTransform(slot);if(typeof applyPhotoFx==='function')applyPhotoFx(slot);
+    updateFilm();pushHistory();
+  };
+  r.readAsDataURL(file);
 }
+function replaceVideo(vc,file){
+  var id=vc.dataset.vidId||('v'+Date.now().toString(36));
+  vc.dataset.vidId=id;
+  idbPut('vidblob_'+id,file).then(function(){return idbGet('vidblob_'+id);}).then(function(blob){
+    if(!blob)return;
+    var v=vc.querySelector('video');
+    if(v&&v.src)URL.revokeObjectURL(v.src);
+    v.src=URL.createObjectURL(blob);v.play()['catch'](function(){});
+    vc.classList.add('has-img');
+    updateFilm();pushHistory();
+  });
+}
+function triggerReplaceMedia(el){
+  if(!el)return;
+  pickMode='replace';pickTarget=el;
+  filepick.accept=el.classList.contains('vidclip')?'video/*':'image/*';
+  filepick.value='';filepick.click();
+}
+
 function wirePhoto(p){
   if(p.__w)return;p.__w=1;
   enhancePhoto(p);applyTransform(p);applyPhotoFx(p);
@@ -1528,6 +1560,22 @@ var sb=document.getElementById('strokeBtn');if(sb)sb.addEventListener('click',fu
   if(fp)fp.addEventListener('click',stepFont(2));
   var sb=document.getElementById('strokeBtn');
   if(sb)sb.addEventListener('click',function(e){e.stopPropagation();var el=activeEdit();if(!el)return;el.classList.toggle('stroked');updateFilm();pushHistory();});
+})();
+
+/* long-press (500мс без движения) на фото/видео → заменить медиа, сохранив пропорции */
+(function(){
+  var timer=null,moved=false,sx,sy,tEl;
+  stage.addEventListener('pointerdown',function(e){
+    if(e.target.closest('.ph-pick,.mv-del,.fr-del,.mv-handle,.tx-resize,.fr-resize,.fr-move,.layer-toggle,.rot-handle,.spin-toggle,.type-toggle'))return;
+    var el=e.target.closest('.photo.has-img, .frame.has-img, .vidclip');
+    if(!el)return;
+    tEl=el;moved=false;sx=e.clientX;sy=e.clientY;
+    if(timer)clearTimeout(timer);
+    timer=setTimeout(function(){if(!moved&&tEl){triggerReplaceMedia(tEl);}timer=null;},500);
+  },true);
+  stage.addEventListener('pointermove',function(e){if(!timer)return;if(Math.abs(e.clientX-sx)+Math.abs(e.clientY-sy)>10){moved=true;clearTimeout(timer);timer=null;}},true);
+  stage.addEventListener('pointerup',function(){if(timer){clearTimeout(timer);timer=null;}},true);
+  stage.addEventListener('pointercancel',function(){if(timer){clearTimeout(timer);timer=null;}},true);
 })();
 
 document.addEventListener('click',function(){document.querySelectorAll('.dd.open').forEach(function(d){d.classList.remove('open');});});
