@@ -29,6 +29,21 @@
 /* preview timeline bar */
 .tl-bar{display:flex;align-items:center;gap:10px;padding:2px 0}
 .tl-bar input[type=range]{flex:1 1 auto;accent-color:var(--ui-acc);height:16px}
+
+/* всплывающие панели — фикс. снизу-справа */
+.photofx.dd.open,.vidclipfx.dd.open,.stickerfx.dd.open{top:auto!important;left:auto!important;bottom:calc(12px + env(safe-area-inset-bottom,0px))!important;right:12px!important;max-height:72vh;overflow:auto}
+
+/* ретушь фото — полноэкранный модал с zoom/pan */
+.ret-modal{display:none;position:fixed;inset:0;z-index:80;background:#0e0f12;flex-direction:column}
+.ret-modal.open{display:flex}
+.ret-stage{flex:1;position:relative;overflow:hidden;touch-action:none;display:flex;align-items:center;justify-content:center}
+.rt-wrap{position:relative;transform-origin:center center;transition:transform .05s;line-height:0}
+.rt-canvas{display:block;max-width:96vw;max-height:74vh;box-shadow:0 8px 30px rgba(0,0,0,.6);touch-action:none;cursor:crosshair}
+.ret-bar{flex:0 0 auto;display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));background:var(--ui-panel);border-top:1px solid var(--ui-line)}
+.ret-bar button{border:1px solid var(--ui-line);background:var(--ui-panel-2);color:var(--ui-text);border-radius:8px;padding:7px 11px;font:600 11px 'Inter';cursor:pointer}
+.ret-bar button.on,.ret-bar button.primary{background:var(--ui-acc);border-color:var(--ui-acc);color:#fff}
+.ret-bar label{font:600 10px 'Inter';color:var(--ui-dim);display:flex;align-items:center;gap:5px}
+.ret-bar input[type=range]{width:90px;accent-color:var(--ui-acc)}
 </style>
 
 <style id="slidecss">
@@ -159,9 +174,9 @@ em{font-style:italic}
 .mini .sticker.sel{outline:none!important}
 .mini .sticker .mv-handle,.mini .sticker .mv-del,.mini .sticker .tx-resize,.mini .sticker .rot-handle{display:none!important}
 
-.vidclip{position:absolute;touch-action:none;cursor:move;border-radius:14px;overflow:hidden}
-.vidclip video{width:100%;height:100%;object-fit:cover;background:#000;pointer-events:none;display:block;transform-origin:center center}
-.vidclip.cround{border-radius:50%}
+.vidclip{position:absolute;touch-action:none;cursor:move}
+.vidclip video{width:100%;height:100%;object-fit:cover;background:#000;pointer-events:none;display:block;transform-origin:center center;border-radius:14px}
+.vidclip.cround video{border-radius:50%}
 .vidclip .mv-handle,.vidclip .mv-del,.vidclip .tx-resize,.vidclip .layer-toggle{display:none}
 .vidclip.sel{outline:2px dashed var(--sage);outline-offset:6px}
 .vidclip.sel .mv-handle,.vidclip.sel .mv-del,.vidclip.sel .tx-resize,.vidclip.sel .layer-toggle{display:block}
@@ -416,6 +431,7 @@ header .logo b{color:var(--ui-acc);font-weight:700}
     <div class="fx-note">Применится к выбранной рамке или к основному фото слайда. Сохраняется в слайд и в экспорт.</div>
     <button class="fx-reset" id="fxReset">Сброс</button>
   </div>
+  <button class="fx-chip" id="fxRetouch" style="margin-top:2px">✦ Ретушь</button>
 </div>
 
 <div class="vidclipfx dd" id="vidclipfx">
@@ -482,6 +498,8 @@ header .logo b{color:var(--ui-acc);font-weight:700}
   <div class="imgs" id="imgs"></div>
 </div>
 
+<div class="ret-modal" id="retModal">
+  <div class="ret-stage" id="retStage"><div class="rt-wrap" id="rtWrap"></div></div>
 <input type="file" id="filepick" accept="image/*" multiple style="position:fixed;top:0;left:0;width:1px;height:1px;opacity:0">
 <div id="measurer" style="position:fixed;left:-99999px;top:0;width:540px;pointer-events:none;opacity:0"></div>
 
@@ -1745,7 +1763,11 @@ function vidClipDuration(vc){
   if(!vc)return 0;
   var v=vc.querySelector('video');
   return (v&&v.duration&&isFinite(v.duration))?v.duration:0;
+}function seekVid(vc,sec){
+  var v=vc&&vc.querySelector('video');if(!v||!v.duration||!isFinite(v.duration))return;
+  try{v.currentTime=Math.max(0,Math.min(v.duration-0.05,sec));}catch(_){}
 }
+
 function applyVidClipFx(vc){
   if(!vc)return;
   var v=vc.querySelector('video');
@@ -1951,6 +1973,96 @@ function previewRefreshUI(){
   if(!has)previewReset();
 }
 
+/* ---- ретушь фото: heal (лампочка) + clone (штамп) ---- */
+var RT={active:false,el:null,canvas:null,ctx:null,mode:'heal',size:30,hist:[],last:null,blur:null,cloneSrc:null,cloneOff:null,pointerId:null,zoom:1,panX:0,panY:0,panMode:false,panId:null,panStart:null};
+function boxBlur(src,w,h,r){
+  var out=new Uint8ClampedArray(src.length),tmp=new Uint8ClampedArray(src.length);
+  for(var y=0;y<h;y++){for(var x=0;x<w;x++){var sr=0,sg=0,sb=0,sa=0,n=0;for(var dx=-r;dx<=r;dx++){var xx=x+dx;if(xx<0||xx>=w)continue;var i=(y*w+xx)*4;sr+=src[i];sg+=src[i+1];sb+=src[i+2];sa+=src[i+3];n++;}var oi=(y*w+x)*4;tmp[oi]=sr/n;tmp[oi+1]=sg/n;tmp[oi+2]=sb/n;tmp[oi+3]=sa/n;}}
+  for(var y2=0;y2<h;y2++){for(var x2=0;x2<w;x2++){var sr2=0,sg2=0,sb2=0,sa2=0,n2=0;for(var dy=-r;dy<=r;dy++){var yy=y2+dy;if(yy<0||yy>=h)continue;var i2=(yy*w+x2)*4;sr2+=tmp[i2];sg2+=tmp[i2+1];sb2+=tmp[i2+2];sa2+=tmp[i2+3];n2++;}var oi2=(y2*w+x2)*4;out[oi2]=sr2/n2;out[oi2+1]=sg2/n2;out[oi2+2]=sb2/n2;out[oi2+3]=sa2/n2;}}
+  return out;
+}
+function openRetouch(el){
+  if(!el)return;var img=el.querySelector('.ph-img');if(!img||!img.complete||!img.naturalWidth)return;
+  RT.el=el;
+  var nw=img.naturalWidth,nh=img.naturalHeight,MAXD=1600,scale=Math.min(1,MAXD/Math.max(nw,nh));
+  var W=Math.max(40,Math.round(nw*scale)),H=Math.max(40,Math.round(nh*scale));
+  var c=document.createElement('canvas');c.className='rt-canvas';c.width=W;c.height=H;
+  document.getElementById('rtWrap').appendChild(c);RT.canvas=c;RT.ctx=c.getContext('2d');
+  RT.ctx.drawImage(img,0,0,W,H);
+  RT.hist=[RT.ctx.getImageData(0,0,W,H)];
+  try{RT.blur=boxBlur(RT.hist[0].data,W,H,6);}catch(_){RT.blur=null;}
+  RT.zoom=1;RT.panX=0;RT.panY=0;RT.panMode=false;RT.active=true;RT.cloneSrc=null;RT.cloneOff=null;RT.last=null;
+  rtApplyTransform();
+  document.querySelectorAll('.dd.open').forEach(function(d){d.classList.remove('open');});
+  document.getElementById('retModal').classList.add('open');
+  wireRtCanvas(c);
+}
+function rtApplyTransform(){
+  var w=document.getElementById('rtWrap');if(!w)return;
+  w.style.transform='translate('+RT.panX+'px,'+RT.panY+'px) scale('+RT.zoom+')';
+}
+function closeRetouch(apply){
+  if(!RT.el)return;
+  if(apply&&RT.canvas){
+    var url=RT.canvas.toDataURL('image/jpeg',0.92);
+    var img=RT.el.querySelector('.ph-img');
+    if(!RT.el.dataset.rtOrig)RT.el.dataset.rtOrig=img.src;
+    img.src=url;img.style.display='block';RT.el.classList.add('has-img');
+    RT.el.dataset.scale=1;RT.el.dataset.x=0;RT.el.dataset.y=0;
+    applyTransform(RT.el);applyPhotoFx(RT.el);updateFilm();pushHistory();
+  }
+  if(RT.canvas&&RT.canvas.parentNode)RT.canvas.parentNode.removeChild(RT.canvas);
+  RT.active=false;RT.el=null;RT.canvas=null;RT.ctx=null;RT.hist=[];RT.blur=null;
+  document.getElementById('retModal').classList.remove('open');
+}
+function rtStampAt(cx,cy){
+  var W=RT.canvas.width,H=RT.canvas.height,id=RT.ctx.getImageData(0,0,W,H),D=id.data;
+  if(!RT.cloneOff){RT.cloneSrc={x:cx,y:cy};RT.cloneOff={x:0,y:0};return;}
+  var sx0=cx-RT.cloneOff.x,sy0=cy-RT.cloneOff.y,r=RT.size,srcSnap=RT.ctx.getImageData(0,0,W,H).data;
+  for(var yy=-r;yy<=r;yy++){for(var xx=-r;xx<=r;xx++){if(xx*xx+yy*yy>r*r)continue;var tx=cx+xx|0,ty=cy+yy|0;if(tx<0||ty<0||tx>=W||ty>=H)continue;var sxi=sx0+xx|0,syi=sy0+yy|0;if(sxi<0||syi<0||sxi>=W||syi>=H)continue;var di=(ty*W+tx)*4,si=(syi*W+sxi)*4;D[di]=srcSnap[si];D[di+1]=srcSnap[si+1];D[di+2]=srcSnap[si+2];D[di+3]=255;}}
+  RT.ctx.putImageData(id,0,0);RT.hist.push(RT.ctx.getImageData(0,0,W,H));if(RT.hist.length>20)RT.hist.shift();
+}
+function rtHealAt(cx,cy){
+  var W=RT.canvas.width,H=RT.canvas.height,id=RT.ctx.getImageData(0,0,W,H),D=id.data,B=RT.blur;
+  if(!B){RT.hist.push(RT.ctx.getImageData(0,0,W,H));return;}
+  var r=RT.size;
+  for(var yy=-r;yy<=r;yy++){for(var xx=-r;xx<=r;xx++){if(xx*xx+yy*yy>r*r)continue;var tx=cx+xx|0,ty=cy+yy|0;if(tx<0||ty<0||tx>=W||ty>=H)continue;var di=(ty*W+tx)*4;D[di]=B[di];D[di+1]=B[di+1];D[di+2]=B[di+2];D[di+3]=255;}}
+  RT.ctx.putImageData(id,0,0);RT.hist.push(RT.ctx.getImageData(0,0,W,H));if(RT.hist.length>20)RT.hist.shift();
+}
+function wireRtCanvas(c){
+  function pos(e){var r=c.getBoundingClientRect();return{x:(e.clientX-r.left)*(c.width/r.width),y:(e.clientY-r.top)*(c.height/r.height)};}
+  function stroke(x0,y0,x1,y1){
+    var dist=Math.hypot(x1-x0,y1-y0),step=Math.max(2,RT.size/3),n=Math.max(1,Math.round(dist/step));
+    for(var i=0;i<=n;i++){var t=i/n,x=x0+(x1-x0)*t,y=y0+(y1-y0)*t;if(RT.mode==='heal')rtHealAt(x|0,y|0);else rtStampAt(x|0,y|0);}
+  }
+  c.addEventListener('pointerdown',function(e){e.preventDefault();e.stopPropagation();
+    if(RT.panMode){RT.panId=e.pointerId;RT.panStart={x:e.clientX-RT.panX,y:e.clientY-RT.panY};try{c.setPointerCapture(e.pointerId);}catch(_){}return;}
+    try{c.setPointerCapture(e.pointerId);}catch(_){}RT.pointerId=e.pointerId;var p=pos(e);RT.last=p;if(RT.mode==='heal')rtHealAt(p.x|0,p.y|0);else rtStampAt(p.x|0,p.y|0);
+  },true);
+  c.addEventListener('pointermove',function(e){
+    if(RT.panMode&&RT.panId===e.pointerId){RT.panX=e.clientX-RT.panStart.x;RT.panY=e.clientY-RT.panStart.y;rtApplyTransform();return;}
+    if(RT.pointerId!==e.pointerId||!RT.last)return;var p=pos(e);stroke(RT.last.x,RT.last.y,p.x,p.y);RT.last=p;
+  },true);
+  c.addEventListener('pointerup',function(e){if(RT.panId===e.pointerId)RT.panId=null;if(RT.pointerId===e.pointerId)RT.pointerId=null;RT.last=null;},true);
+  c.addEventListener('pointercancel',function(e){RT.panId=null;RT.pointerId=null;RT.last=null;},true);
+}
+(function(){
+  var b=document.getElementById('fxRetouch');
+  if(b)b.addEventListener('click',function(e){e.stopPropagation();var el=targetPhoto();if(el)openRetouch(el);});
+  function setMode(m){RT.mode=m;RT.cloneOff=null;RT.cloneSrc=null;document.getElementById('rtHeal').classList.toggle('on',m==='heal');document.getElementById('rtClone').classList.toggle('on',m==='clone');}
+  var h=document.getElementById('rtHeal');if(h)h.addEventListener('click',function(){setMode('heal');});
+  var cl=document.getElementById('rtClone');if(cl)cl.addEventListener('click',function(){setMode('clone');});
+  var sz=document.getElementById('rtSize');if(sz)sz.addEventListener('input',function(){RT.size=+sz.value||30;});
+  var zm=document.getElementById('rtZoom');
+  if(zm)zm.addEventListener('input',function(){RT.zoom=+zm.value||1;if(RT.zoom<=1){RT.panX=0;RT.panY=0;}rtApplyTransform();});
+  var mv=document.createElement('button');mv.id='rtMove';mv.textContent='✋ Двигать';mv.className='';
+  var bar=document.getElementById('retBar');if(bar&&bar.querySelector('#rtZoom')){bar.insertBefore(mv,document.getElementById('rtZoom'));}
+  if(mv)mv.addEventListener('click',function(){RT.panMode=!RT.panMode;mv.classList.toggle('on',RT.panMode);mv.textContent=RT.panMode?'✏ Рисовать':'✋ Двигать';RT.panId=null;RT.pointerId=null;RT.last=null;});
+  var u=document.getElementById('rtUndo');if(u)u.addEventListener('click',function(){if(RT.hist.length>1){RT.hist.pop();RT.ctx.putImageData(RT.hist[RT.hist.length-1],0,0);}});
+  var ok=document.getElementById('rtOk');if(ok)ok.addEventListener('click',function(){closeRetouch(true);});
+  var ca=document.getElementById('rtCancel');if(ca)ca.addEventListener('click',function(){closeRetouch(false);});
+})();
+
 function renderSlideCanvas(el,animState,videoFrameMap){
   return new Promise(function(resolve,reject){
     var w=540,h=el.classList.contains('f916')?960:675,ES=2;
@@ -2097,8 +2209,8 @@ function openModal(blobs){
     inp.addEventListener('input',function(e){e.stopPropagation();var val=+inp.value||0;if(sp)sp.textContent=f1(val);var vc=targetVidClip();if(!vc)return;applier(vc,val);updateFilm();pushSoon();});
     inp.addEventListener('click',function(e){e.stopPropagation();});
   }
-  bind('cxTrimS','cxTrimSV',function(vc,val){vc.dataset.trimStart=val;});
-  bind('cxTrimE','cxTrimEV',function(vc,val){vc.dataset.trimEnd=val;});
+  bind('cxTrimS','cxTrimSV',function(vc,val){vc.dataset.trimStart=val;seekVid(vc,val);});
+  bind('cxTrimE','cxTrimEV',function(vc,val){vc.dataset.trimEnd=val;seekVid(vc,val);});
   bind('cxPlayS','cxPlaySV',function(vc,val){vc.dataset.playStart=Math.round(val*1000);});
   bind('cxPlayE','cxPlayEV',function(vc,val){vc.dataset.playEnd=Math.round(val*1000);});
   var slInp=document.getElementById('cxSlideLen'),slSp=document.getElementById('cxSlideLenV');
