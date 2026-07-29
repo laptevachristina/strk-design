@@ -176,7 +176,7 @@ em{font-style:italic}
 
 .vidclip{position:absolute;touch-action:none;cursor:move}
 .vidclip video{width:100%;height:100%;object-fit:cover;background:#000;pointer-events:none;display:block;transform-origin:center center;border-radius:14px}
-.vidclip.cround video{border-radius:50%}
+.vidclip.cround video{border-radius:0;clip-path:circle(closest-side)}
 .vidclip .mv-handle,.vidclip .mv-del,.vidclip .tx-resize,.vidclip .layer-toggle{display:none}
 .vidclip.sel{outline:2px dashed var(--sage);outline-offset:6px}
 .vidclip.sel .mv-handle,.vidclip.sel .mv-del,.vidclip.sel .tx-resize,.vidclip.sel .layer-toggle{display:block}
@@ -2421,6 +2421,31 @@ function prerenderClipFrames(video,targetW,targetH,onProgress){
     setTimeout(finish,Math.min(20000,video.duration*1000+3000)); /* жёсткая подстраховка — не дольше длины клипа+3с */
   });
 }
+var SEAL_SERVER='https://seal.72.56.9.229.sslip.io';
+function serverCompose(el,format,btn){
+  var vc=el.querySelector('.vidclip');var v=vc&&vc.querySelector('video');
+  if(!v||!v.duration||!isFinite(v.duration))return Promise.reject(new Error('видео не готово'));
+  var dur=Math.min(10,Math.max(0.5,v.duration));
+  var st=function(t){if(btn)btn.textContent=t;};st('\u23f3 фон…');
+  window._skipVids=true;
+  return renderSlideCanvas(el,null,null).then(function(canvas){
+    window._skipVids=false;if(!canvas)throw new Error('рендер фона не удался');
+    var ES=canvas.width/540;
+    var x=Math.round(vc.offsetLeft*ES),y=Math.round(vc.offsetTop*ES),w=Math.round(vc.offsetWidth*ES),h=Math.round(vc.offsetHeight*ES);
+    var rad=Math.round((parseFloat(getComputedStyle(vc.querySelector('video')).borderTopLeftRadius)||28)*ES);
+    return new Promise(function(res){canvas.toBlob(function(b){res(b);},'image/png');}).then(function(bgBlob){
+      st('\u23f3 сервер…');
+      return fetch(v.src).then(function(r){return r.blob();}).then(function(vblob){
+        var cutColor=vc.dataset.cutColor||'',cutThresh=vc.dataset.cutThresh||'';
+        var meta=JSON.stringify({x:x,y:y,w:w,h:h,radius:rad,duration:dur,format:format||'mp4',cutColor:cutColor,cutThresh:cutThresh});
+        var fd=new FormData();fd.append('bg',bgBlob,'bg.png');fd.append('video',vblob,'in.mp4');fd.append('meta',meta);
+        st('\u23f3 сборка…');
+        return fetch(SEAL_SERVER+'/compose',{method:'POST',body:fd});
+      }).then(function(r){if(!r.ok)throw new Error('сервер '+r.status);return r.blob();}).then(function(b){return {blob:b,mime:'video/mp4'};});
+    });
+  })['catch'](function(err){window._skipVids=false;throw err;});
+}
+
 var gifBtn=document.getElementById('exp-gif');
 var videoExportBusy=false;
 if(gifBtn)gifBtn.addEventListener('click',function(){
@@ -2432,6 +2457,15 @@ if(gifBtn)gifBtn.addEventListener('click',function(){
   var btn=gifBtn,oldText=btn.textContent;btn.disabled=true;btn.textContent='⏳ …';
   document.fonts.ready.then(function(){
     var el=slides[cur].el;
+    if(el.querySelector('.vidclip video')){
+      return serverCompose(el,'mp4',btn).then(function(r){
+        videoExportBusy=false;btn.disabled=false;btn.textContent=oldText;
+        if(r&&r.blob)openVideoModal(r.blob,r.mime);
+      },function(e){
+        videoExportBusy=false;btn.disabled=false;btn.textContent=oldText;
+        alert('Не получилось собрать видео'+(e&&e.message?(': '+e.message):'')+' — напиши мне.');
+      });
+    }
     var items=getAnimItems(el);
     var spinMode=hasSpinningSticker(items);
     var typeSchedule=buildTypeSchedule(items);
