@@ -1514,7 +1514,7 @@ function wireSlide(el){
 
 /* ---- hist: undo / redo ---- */
 var hist=[],hpos=-1,pushT=null;
-function serialize(){return JSON.stringify({format:format,cur:cur,slides:slides.map(function(s){return{type:s.type,bg:s.el.dataset.bg,f916:s.el.classList.contains('f916'),html:s.el.innerHTML};})});}
+function serialize(){return JSON.stringify({format:format,cur:cur,slides:slides.filter(function(s){return s&&s.el;}).map(function(s){return{type:s.type,bg:s.el.dataset.bg,f916:s.el.classList.contains('f916'),html:s.el.innerHTML};})});}
 var DECK_KEY='deck_'+location.pathname;var _saveT=null,_idbP=null,_dirty=false;
 function idbReady(){if(_idbP)return _idbP;_idbP=new Promise(function(res,rej){try{var r=indexedDB.open('appDB',1);r.onupgradeneeded=function(e){e.target.result.createObjectStore('kv');};r.onsuccess=function(e){res(e.target.result);};r.onerror=function(){rej(r.error);};}catch(e){rej(e);}});return _idbP;}
 function idbPut(k,v){return idbReady().then(function(db){return new Promise(function(res,rej){var t=db.transaction('kv','readwrite');t.objectStore('kv').put(v,k);t.oncomplete=function(){res();};t.onerror=function(){rej(t.error);};});});}
@@ -1630,6 +1630,8 @@ function fit(){
   scaler.style.width=(540*sc)+'px';scaler.style.height=(h*sc)+'px';
 }
 function render(){
+  slides=slides.filter(function(s){return s&&s.el;});
+  if(cur>=slides.length)cur=slides.length-1;if(cur<0)cur=0;
   if(typeof previewReset==='function')previewReset();
   if(typeof previewRefreshUI==='function')previewRefreshUI();
   host.innerHTML='';
@@ -1663,7 +1665,7 @@ var _filmTimer=null;
 function updateFilm(){if(_filmTimer)clearTimeout(_filmTimer);_filmTimer=setTimeout(_updateFilmNow,140);}
 function _updateFilmNow(){
   var film=document.getElementById('film');var _sl=film.scrollLeft;film.innerHTML='';
-  slides.forEach(function(s,i){
+  slides.forEach(function(s,i){if(!s||!s.el)return;
     var chip=document.createElement('div');
     chip.className='chip'+(s.el.classList.contains('f916')?' f916':'')+(i===cur?' on':'');
     var mini=document.createElement('div');mini.className='mini';
