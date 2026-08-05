@@ -1,4 +1,4 @@
-<!--seal-github-v128|animate-route-fix+photo-video-->
+<!--seal-github-v129|animate-route-fix+photo-video-->
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -993,7 +993,7 @@ filepick.addEventListener('change',function(){
       slot.dataset.scale=1;slot.dataset.x=0;slot.dataset.y=0;
       idbGet('vidblob_'+vid).then(function(blob){
         if(blob){
-          v.onloadedmetadata=function(){applyTransform(slot);};
+          v.onloadedmetadata=function(){applyTransform(slot);applyPhotoFx(slot);};
           v.src=URL.createObjectURL(blob);v.play()['catch'](function(){});
         }
       });
@@ -1614,6 +1614,7 @@ function wirePanZoom(p){
     else if(ids.length===0){p.style.cursor='grab';updateFilm();if(moved)pushHistory();}
     if(!moved){                                           // it was a tap
       if(e.target.closest('.ph-pick')||!p.classList.contains('has-img'))openPick(p);
+      else if(p.dataset.vidId){selectPhotoSlot(p);openPhotoFxPanel();}
     }
   });
   p.addEventListener('pointercancel',function(e){delete pointers[e.pointerId];});
@@ -2151,6 +2152,18 @@ function photoFilterOf(el){
   else if(w<0)f+=' hue-rotate('+(w*0.25).toFixed(2)+'deg) brightness('+(1+w*0.0015).toFixed(3)+')';
   return f;
 }
+function selectPhotoSlot(p){
+  if(cur<0||!slides[cur])return;
+  var sl=slides[cur].el;
+  sl.querySelectorAll('[data-photo].sel,.frame.sel').forEach(function(e){if(e!==p)e.classList.remove('sel');});
+  p.classList.add('sel');
+}
+function openPhotoFxPanel(){
+  var t=document.getElementById('photofx');if(!t)return;
+  document.querySelectorAll('.dd.open').forEach(function(d){d.classList.remove('open');});
+  t.classList.add('open');
+  if(typeof syncPhotoFxUI==='function')syncPhotoFxUI();
+}
 function applyPhotoFx(el){
   if(!el)return;
   var img=el.querySelector('.ph-img');if(!img)return;
@@ -2205,7 +2218,7 @@ function applyPixelFx(octx,w,h,fx){
 function targetPhoto(){
   if(cur<0||!slides[cur])return null;
   var sl=slides[cur].el;
-  var sel=sl.querySelector('.frame.sel');
+  var sel=sl.querySelector('.frame.sel,[data-photo].sel');
   if(sel)return sel;
   var withImg=sl.querySelector('[data-photo].has-img');
   if(withImg)return withImg;
