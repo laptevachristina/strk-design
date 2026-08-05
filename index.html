@@ -1,4 +1,4 @@
-<!--seal-github-v127|animate-route-fix+photo-video-->
+<!--seal-github-v128|animate-route-fix+photo-video-->
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -558,6 +558,15 @@ header .logo b{color:var(--ui-acc);font-weight:700}
   <div class="fx-slider"><label>Зум (кадрирование) <span id="cxZoomV">1.0</span>×</label><input type="range" id="cxZoom" min="1" max="4" step="0.05" value="1"></div>
   <div class="fx-slider"><label>Сдвиг ←→ <span id="cxPanXV">0</span></label><input type="range" id="cxPanX" min="-1" max="1" step="0.02" value="0"></div>
   <div class="fx-slider"><label>Сдвиг ↑↓ <span id="cxPanYV">0</span></label><input type="range" id="cxPanY" min="-1" max="1" step="0.02" value="0"></div>
+  <div class="fx-title" style="margin-top:3px">Цвет клипа</div>
+  <div class="fx-row" id="vfxChips">
+    <button class="fx-chip" data-vfxpreset="none">Оригинал</button>
+    <button class="fx-chip" data-vfxpreset="milk">Молоко</button>
+    <button class="fx-chip" data-vfxpreset="sage">Шалфей</button>
+    <button class="fx-chip" data-vfxpreset="graphite">Графит</button>
+    <button class="fx-chip" data-vfxpreset="film">Плёнка</button>
+  </div>
+  <div class="fx-slider"><label>Сила пресета <span id="vfxIntensityV">70</span>%</label><input type="range" id="vfxIntensity" min="0" max="100" step="5" value="70"></div>
   <div class="fx-row">
     <button class="fx-chip" id="cxLayer">Слой: выше текста</button>
     <button class="fx-chip" id="cxRound">◯ Круг</button>
@@ -1916,7 +1925,7 @@ document.querySelectorAll('.dd-btn').forEach(function(b){b.addEventListener('cli
   var lb=document.getElementById('cxLayer');
   if(lb)lb.addEventListener('click',function(e){e.stopPropagation();var vc=targetVidClip();if(!vc)return;var below=vc.classList.contains('layer-below');if(below){vc.classList.remove('layer-below');vc.dataset.layer='above';}else{vc.classList.add('layer-below');vc.dataset.layer='below';}if(typeof updateLayerDOM==='function')updateLayerDOM(vc);syncVidClipFxUI();updateFilm();pushHistory();});
   var cr=document.getElementById('cxReset');
-  if(cr)cr.addEventListener('click',function(e){e.stopPropagation();var vc=targetVidClip();if(!vc)return;delete vc.dataset.trimStart;delete vc.dataset.trimEnd;delete vc.dataset.playStart;delete vc.dataset.playEnd;delete vc.dataset.czoom;delete vc.dataset.cpanx;delete vc.dataset.cpany;delete vc.dataset.cround;if(slides[cur])delete slides[cur].el.dataset.slideLen;applyVidClipFx(vc);syncVidClipFxUI();updateFilm();pushHistory();});
+  if(cr)cr.addEventListener('click',function(e){e.stopPropagation();var vc=targetVidClip();if(!vc)return;delete vc.dataset.trimStart;delete vc.dataset.trimEnd;delete vc.dataset.playStart;delete vc.dataset.playEnd;delete vc.dataset.czoom;delete vc.dataset.cpanx;delete vc.dataset.cpany;delete vc.dataset.cround;delete vc.dataset.fxpreset;delete vc.dataset.fxintensity;delete vc.dataset.fxbright;delete vc.dataset.fxcontrast;delete vc.dataset.fxsat;delete vc.dataset.fxwarm;if(slides[cur])delete slides[cur].el.dataset.slideLen;applyVidClipFx(vc);syncVidClipFxUI();updateFilm();pushHistory();});
   /* кадрирование: зум / pan / круг */
   function cbind(id,vid,fn,fmt){var inp=document.getElementById(id),sp=document.getElementById(vid);if(!inp)return;
     inp.addEventListener('input',function(e){e.stopPropagation();var v=+inp.value;if(sp)sp.textContent=fmt?fmt(v):v;var vc=targetVidClip();if(!vc)return;fn(vc,v);applyVidClipFx(vc);pushSoon();});
@@ -1924,6 +1933,9 @@ document.querySelectorAll('.dd-btn').forEach(function(b){b.addEventListener('cli
   cbind('cxZoom','cxZoomV',function(vc,v){vc.dataset.czoom=v;},function(v){return(Math.round(v*20)/20).toFixed(2);});
   cbind('cxPanX','cxPanXV',function(vc,v){vc.dataset.cpanx=v;},function(v){return Math.round(v*100);});
   cbind('cxPanY','cxPanYV',function(vc,v){vc.dataset.cpany=v;},function(v){return Math.round(v*100);});
+  document.querySelectorAll('#vfxChips .fx-chip').forEach(function(c){c.addEventListener('click',function(e){e.stopPropagation();var vc=targetVidClip();if(!vc)return;vc.dataset.fxpreset=c.dataset.vfxpreset;applyVidClipFx(vc);syncVidClipFxUI();pushSoon();});});
+  var vint=document.getElementById('vfxIntensity');
+  if(vint)vint.addEventListener('input',function(e){e.stopPropagation();var vc=targetVidClip();var val=+vint.value||0;var vsp=document.getElementById('vfxIntensityV');if(vsp)vsp.textContent=val;if(!vc)return;vc.dataset.fxintensity=val;applyVidClipFx(vc);pushSoon();});
   var rnd=document.getElementById('cxRound');
   if(rnd)rnd.addEventListener('click',function(e){e.stopPropagation();var vc=targetVidClip();if(!vc)return;vc.dataset.cround=vc.dataset.cround==='1'?'':'1';applyVidClipFx(vc);syncVidClipFxUI();pushHistory();});
 })();
@@ -2144,6 +2156,10 @@ function applyPhotoFx(el){
   var img=el.querySelector('.ph-img');if(!img)return;
   img.style.filter=photoFilterOf(el);
 }
+function applyVidFx(vc){
+  if(!vc)return;var v=vc.querySelector('video');if(!v)return;
+  v.style.filter=photoFilterOf(vc);
+}
 /* Программный аналог CSS-filter (ctx.filter в Сафари не работает). */
 function _parseFxFilters(str){
   var ops={br:1,co:1,sa:1,gr:0,se:0,hu:0},m;
@@ -2230,6 +2246,7 @@ function applyVidClipFx(vc){
   var zoom=parseFloat(vc.dataset.czoom)||1,panX=parseFloat(vc.dataset.cpanx)||0,panY=parseFloat(vc.dataset.cpany)||0;
   vc.classList.toggle('cround',vc.dataset.cround==='1');
   if(v){var t='scale('+zoom+')';if(panX||panY)t+=' translate('+panX*45+'%,'+panY*45+'%)';v.style.transform=t;}
+  if(typeof applyVidFx==='function')applyVidFx(vc);
   updateFilm();
 }
 function fmt1(x){return (Math.round(x*10)/10).toFixed(1);}
@@ -2272,6 +2289,11 @@ function syncVidClipFxUI(){
   if(pyI)pyI.value=panY;if(pyV)pyV.textContent=Math.round(panY*100);
   var rnd=document.getElementById('cxRound');
   if(rnd)rnd.textContent=(vc&&vc.dataset.cround==='1')?'◯ Круг ✓':'◯ Круг';
+  var vp=(vc&&(vc.dataset.fxpreset||'none'))||'none';
+  document.querySelectorAll('#vfxChips .fx-chip').forEach(function(c){c.classList.toggle('on',c.dataset.vfxpreset===vp);});
+  var vi=vc?(vc.dataset.fxintensity===undefined?70:(+vc.dataset.fxintensity||0)):70;
+  var vii=document.getElementById('vfxIntensity'),viv=document.getElementById('vfxIntensityV');
+  if(vii)vii.value=vi;if(viv)viv.textContent=vi;
 }
 function openVidClipFx(vc){
   var t=document.getElementById('vidclipfx');if(!t||!vc)return;
@@ -2794,6 +2816,7 @@ function renderSlideCanvas(el,animState,videoFrameMap){
       var rec={src:src,vw:vw,vh:vh,x:vc.offsetLeft,y:vc.offsetTop,W:vc.offsetWidth,H:vc.offsetHeight,
         rad:parseFloat(cs.borderTopLeftRadius)||14,
         round:vc.classList.contains('cround'),
+        fx:photoFilterOf(vc),
         zoom:parseFloat(vc.dataset.czoom)||1,
         panX:parseFloat(vc.dataset.cpanx)||0,
         panY:parseFloat(vc.dataset.cpany)||0};
@@ -2865,7 +2888,12 @@ function renderSlideCanvas(el,animState,videoFrameMap){
           var scale=Math.max(rec.W/rec.vw,rec.H/rec.vh)*zoom;
           var dw=rec.vw*scale,dh=rec.vh*scale;
           var dx=rec.x+(rec.W-dw)/2+panX*rec.W*0.45,dy=rec.y+(rec.H-dh)/2+panY*rec.H*0.45;
-          try{ctx.drawImage(rec.src,dx,dy,dw,dh);}catch(e){}
+          if(rec.fx&&rec.fx!=='none'){
+            var ov=document.createElement('canvas');ov.width=Math.max(1,Math.ceil(dw));ov.height=Math.max(1,Math.ceil(dh));
+            var ovc=ov.getContext('2d');
+            try{ovc.drawImage(rec.src,0,0,dw,dh);applyPixelFx(ovc,ov.width,ov.height,rec.fx);
+              ctx.drawImage(ov,dx,dy,dw,dh);}catch(e){try{ctx.drawImage(rec.src,dx,dy,dw,dh);}catch(_){}}
+          }else{try{ctx.drawImage(rec.src,dx,dy,dw,dh);}catch(e){}}
           ctx.restore();
         }
         stickersBelow.forEach(drawSticker);
@@ -3289,7 +3317,7 @@ function serverCompose(el,format,btn){
         else{roundRectPath(mx,0,0,w,h,rad);mx.fill();}
         maskBlob=new Promise(function(res){mc.toBlob(function(b){res(b);},'image/png');});
       }
-      var meta=JSON.stringify({x:x,y:y,w:w,h:h,radius:rad,duration:dur,format:format||'mp4',cutColor:cutColor,cutThresh:cutThresh,edl:edlRaw,hasAbove:!!ovBlob,hasMask:!!maskBlob});
+      var meta=JSON.stringify({x:x,y:y,w:w,h:h,radius:rad,duration:dur,format:format||'mp4',cutColor:cutColor,cutThresh:cutThresh,edl:edlRaw,hasAbove:!!ovBlob,fx:photoFilterOf(vc),hasMask:!!maskBlob});
       var fd=new FormData();fd.append('bg',bgBlob,'bg.png');fd.append('video',vblob,'in.mp4');fd.append('meta',meta);
       if(ovBlob)fd.append('overlay',ovBlob,'overlay.png');
       var sendPromise;
