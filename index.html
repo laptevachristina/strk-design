@@ -980,6 +980,7 @@ filepick.addEventListener('change',function(){
   if(pickMode==='slide'&&filepick.files.length>1&&cur>=0&&slides[cur]){
     var files=Array.prototype.slice.call(filepick.files);
     var slots=Array.prototype.slice.call(slides[cur].el.querySelectorAll('[data-photo]:not(.has-img), .frame:not(.has-img)'));
+    setTimeout(function(){alert('МАССОВАЯ: файлов выбрано '+files.length+'; свободных слотов '+slots.length+'; тип слайда '+(slides[cur].type||'?'));},60);
     files.forEach(function(f,i){
       if(!slots[i])return;
       if(f.type&&f.type.indexOf('video')===0){addVideoClip(f);}
