@@ -2730,12 +2730,6 @@ function renderSlideCanvas(el,animState,videoFrameMap){
     var parent=el.parentNode,next=el.nextSibling,pt=el.style.transform;
     el.style.transform='none';meas.appendChild(el);
     var sr=el.getBoundingClientRect(),photos=[];
-    if(el.querySelector('.series-grid')){
-      var _cells=el.querySelectorAll('[data-photo].has-img'),_dbg=_cells.length;
-      var _w=0,_h=0,_nw=0,_cl='';
-      if(_cells[0]){var _im=_cells[0].querySelector('.ph-img');var _r=_cells[0].getBoundingClientRect();_w=_r.width;_h=_r.height;_nw=_im?(_im.naturalWidth||0):0;_cl=_cells[0].className;}
-      setTimeout(function(){alert('ДИАГНОСТИКА Серии:\nслайд '+sr.width.toFixed(0)+'×'+sr.height.toFixed(0)+'\nhas-img ячеек: '+_dbg+'\nпервая ячейка: '+_w.toFixed(0)+'×'+_h.toFixed(0)+', класс=['+_cl+']\nnaturalWidth фото: '+_nw);},50);
-    }
     el.querySelectorAll('[data-photo].has-img, .frame.has-img').forEach(function(p){
       if(window._skipVids&&p.dataset.vidId)return; /* пропуск photo-видео при рендере bg для serverCompose */
       var im=p.querySelector('.ph-img');if(!im||!im.complete)return;
@@ -2801,7 +2795,7 @@ function renderSlideCanvas(el,animState,videoFrameMap){
     clone.style.transform='none';clone.style.boxShadow='none';clone.style.borderRadius='0';clone.style.background='transparent';
     var fontcss=document.getElementById('fontcss').textContent;
     var slidecss=document.getElementById('slidecss').textContent;
-    var extra=".ph-empty:before{content:''!important}.ph-label,.fr-label{display:none!important}.ph-pick,.gcell-move,.fr-del,.fr-resize,.fr-move,.mv-handle,.mv-del,.tx-resize,.type-toggle,.snap-guide{display:none!important}.frame{outline:none!important;box-shadow:none!important;background:transparent!important}.photo{background:transparent!important}.ph-img{display:none!important}.slide{background:transparent!important}[data-edit]{box-shadow:none!important}.sticker{display:none!important}.vidclip{display:none!important}";
+    var extra=".ph-empty:before{content:''!important}.ph-label,.fr-label{display:none!important}.ph-pick,.gcell-move,.fr-del,.fr-resize,.fr-move,.mv-handle,.mv-del,.tx-resize,.type-toggle,.snap-guide{display:none!important}.frame{outline:none!important;box-shadow:none!important;background:transparent!important}.photo{background:transparent!important}.ph-img{display:none!important}.slide{background:transparent!important}.series-wrap{background:transparent!important}.series-grid{background:transparent!important}.series-cell{background:transparent!important}[data-edit]{box-shadow:none!important}.sticker{display:none!important}.vidclip{display:none!important}";
     var xml=new XMLSerializer().serializeToString(clone);
     var svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'"><style>'+fontcss+slidecss+extra+'</style><foreignObject x="0" y="0" width="'+w+'" height="'+h+'"><div xmlns="http://www.w3.org/1999/xhtml">'+xml+'</div></foreignObject></svg>';
     var overlay=new Image();
