@@ -1,4 +1,4 @@
-<!--seal-github-v129|animate-route-fix+photo-video-->
+<!--seal-github-v130|animate-route-fix+photo-video-->
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -3314,6 +3314,9 @@ function serverCompose(el,format,btn){
     var bgBlob=res.bg,ovBlob=res.ov;
     var ES=2;
     var x=Math.round(vc.offsetLeft*ES),y=Math.round(vc.offsetTop*ES),w=Math.round(vc.offsetWidth*ES),h=Math.round(vc.offsetHeight*ES);
+    var vz=1,vx=0,vy=0;
+    if(vc.classList.contains('photo')){vz=parseFloat(vc.dataset.scale)||1;vx=Math.round((parseFloat(vc.dataset.x)||0)*ES);vy=Math.round((parseFloat(vc.dataset.y)||0)*ES);}
+    else{vz=parseFloat(vc.dataset.czoom)||1;vx=Math.round((parseFloat(vc.dataset.cpanx)||0)*w*0.45);vy=Math.round((parseFloat(vc.dataset.cpany)||0)*h*0.45);}
     var rad=Math.round((parseFloat(getComputedStyle(vc.querySelector('video')).borderTopLeftRadius)||28)*ES);
     st('⏳ сервер…');
     return fetch(v.src).then(function(r){return r.blob();}).then(function(vblob){
@@ -3330,7 +3333,7 @@ function serverCompose(el,format,btn){
         else{roundRectPath(mx,0,0,w,h,rad);mx.fill();}
         maskBlob=new Promise(function(res){mc.toBlob(function(b){res(b);},'image/png');});
       }
-      var meta=JSON.stringify({x:x,y:y,w:w,h:h,radius:rad,duration:dur,format:format||'mp4',cutColor:cutColor,cutThresh:cutThresh,edl:edlRaw,hasAbove:!!ovBlob,fx:photoFilterOf(vc),hasMask:!!maskBlob});
+      var meta=JSON.stringify({x:x,y:y,w:w,h:h,radius:rad,duration:dur,format:format||'mp4',cutColor:cutColor,cutThresh:cutThresh,edl:edlRaw,hasAbove:!!ovBlob,fx:photoFilterOf(vc),vz:vz,vx:vx,vy:vy,hasMask:!!maskBlob});
       var fd=new FormData();fd.append('bg',bgBlob,'bg.png');fd.append('video',vblob,'in.mp4');fd.append('meta',meta);
       if(ovBlob)fd.append('overlay',ovBlob,'overlay.png');
       var sendPromise;
