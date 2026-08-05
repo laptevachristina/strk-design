@@ -2730,6 +2730,10 @@ function renderSlideCanvas(el,animState,videoFrameMap){
     var parent=el.parentNode,next=el.nextSibling,pt=el.style.transform;
     el.style.transform='none';meas.appendChild(el);
     var sr=el.getBoundingClientRect(),photos=[];
+    if(el.querySelector('.series-grid')){
+      var _dbg=el.querySelectorAll('[data-photo].has-img').length,_ph=el.querySelectorAll('.ph-img').length;
+      setTimeout(function(){alert('ДИАГНОСТИКА Серии: слайд '+sr.width.toFixed(0)+'×'+sr.height.toFixed(0)+'; найдено has-img ячеек: '+_dbg+'; ph-img всего: '+_ph);},50);
+    }
     el.querySelectorAll('[data-photo].has-img, .frame.has-img').forEach(function(p){
       if(window._skipVids&&p.dataset.vidId)return; /* пропуск photo-видео при рендере bg для serverCompose */
       var im=p.querySelector('.ph-img');if(!im||!im.complete)return;
