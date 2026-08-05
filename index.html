@@ -1,4 +1,4 @@
-<!--seal-github-v126|animate-route-fix+photo-video-->
+<!--seal-github-v127|animate-route-fix+photo-video-->
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -2144,6 +2144,48 @@ function applyPhotoFx(el){
   var img=el.querySelector('.ph-img');if(!img)return;
   img.style.filter=photoFilterOf(el);
 }
+/* Программный аналог CSS-filter (ctx.filter в Сафари не работает). */
+function _parseFxFilters(str){
+  var ops={br:1,co:1,sa:1,gr:0,se:0,hu:0},m;
+  if(m=str.match(/brightness\(([\d.]+)\)/))ops.br=+m[1];
+  if(m=str.match(/contrast\(([\d.]+)\)/))ops.co=+m[1];
+  if(m=str.match(/saturate\(([\d.]+)\)/))ops.sa=+m[1];
+  if(m=str.match(/grayscale\(([\d.]+)\)/))ops.gr=+m[1];
+  if(m=str.match(/sepia\(([\d.]+)\)/))ops.se=+m[1];
+  if(m=str.match(/hue-rotate\(([\d.]+)\)/))ops.hu=+m[1];
+  return ops;
+}
+function applyPixelFx(octx,w,h,fx){
+  if(!fx||fx==='none')return;
+  var o=_parseFxFilters(fx);
+  var id=octx.getImageData(0,0,w,h),d=id.data;
+  var hasHue=Math.abs(o.hu)>0.01,hRad=hasHue?o.hu*Math.PI/180:0,hs=Math.sin(hRad),hc=Math.cos(hRad);
+  for(var i=0;i<d.length;i+=4){
+    var r=d[i]/255,g=d[i+1]/255,b=d[i+2]/255;
+    r*=o.br;g*=o.br;b*=o.br;
+    r=(r-0.5)*o.co+0.5;g=(g-0.5)*o.co+0.5;b=(b-0.5)*o.co+0.5;
+    if(o.se>0){
+      var sr=r,sg=g,sb=b;
+      r=sr*(1-0.607*o.se)+0.769*o.se;g=sg*(1-0.314*o.se)+0.686*o.se;b=sb*(1-0.068*o.se)+0.534*o.se;
+    }
+    if(o.gr>0){
+      var lg=0.2126*r+0.7152*g+0.0722*b;
+      r=r+(lg-r)*o.gr;g=g+(lg-g)*o.gr;b=b+(lg-b)*o.gr;
+    }
+    if(o.sa!==1){
+      var ls=0.2126*r+0.7152*g+0.0722*b;
+      r=ls+(r-ls)*o.sa;g=ls+(g-ls)*o.sa;b=ls+(b-ls)*o.sa;
+    }
+    if(hasHue){
+      var lum=0.213*r+0.715*g+0.072*b,on=(r-lum)*0.787+(g-lum)*0.715+(b-lum)*0.072;
+      var tw=(r-lum)*0.213-(g-lum)*0.285-(b-lum)*0.072*2;
+      var nh=on*hc-tw*hs,nc=on*hs+tw*hc;
+      r=lum+0.787*nh-0.213*nc;g=lum-0.715*nh-0.285*nc;b=lum-0.072*nh+0.857*nc;
+    }
+    d[i]=r<0?0:r>255?255:r*255;d[i+1]=g<0?0:g>255?255:g*255;d[i+2]=b<0?0:b>255?255:b*255;
+  }
+  octx.putImageData(id,0,0);
+}
 function targetPhoto(){
   if(cur<0||!slides[cur])return null;
   var sl=slides[cur].el;
@@ -2792,10 +2834,19 @@ function renderSlideCanvas(el,animState,videoFrameMap){
         if(!_onlyAbove){ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);}
         if(!_onlyAbove)
         photos.forEach(function(p){
-          ctx.save();ctx.globalAlpha=p.opacity;roundRectPath(ctx,p.x,p.y+p.dy,p.W,p.H,p.rad);ctx.clip();if(p.fx&&p.fx!=='none'){try{ctx.filter=p.fx;}catch(_){}}
+          ctx.save();ctx.globalAlpha=p.opacity;roundRectPath(ctx,p.x,p.y+p.dy,p.W,p.H,p.rad);ctx.clip();
           var nw=p.img.videoWidth||p.img.naturalWidth||0,nh=p.img.videoHeight||p.img.naturalHeight||0,cover=Math.max(p.W/nw,p.H/nh);
           var dw=nw*cover*p.s,dh=nh*cover*p.s,cx=p.x+p.W/2+p.tx,cy=p.y+p.dy+p.H/2+p.ty;
-          ctx.drawImage(p.img,cx-dw/2,cy-dh/2,dw,dh);ctx.restore();
+          if(p.fx&&p.fx!=='none'&&nw&&nh){
+            var oc=document.createElement('canvas');oc.width=Math.max(1,Math.ceil(dw));oc.height=Math.max(1,Math.ceil(dh));
+            var octx=oc.getContext('2d');
+            try{octx.drawImage(p.img,0,0,dw,dh);applyPixelFx(octx,oc.width,oc.height,p.fx);
+              ctx.drawImage(oc,cx-dw/2,cy-dh/2,dw,dh);
+            }catch(_){ctx.drawImage(p.img,cx-dw/2,cy-dh/2,dw,dh);}
+          }else{
+            ctx.drawImage(p.img,cx-dw/2,cy-dh/2,dw,dh);
+          }
+          ctx.restore();
         });
         function drawSticker(st){
           ctx.save();ctx.globalAlpha=Math.max(0,Math.min(1,st.opacity));
