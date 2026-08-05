@@ -2731,8 +2731,10 @@ function renderSlideCanvas(el,animState,videoFrameMap){
     el.style.transform='none';meas.appendChild(el);
     var sr=el.getBoundingClientRect(),photos=[];
     if(el.querySelector('.series-grid')){
-      var _dbg=el.querySelectorAll('[data-photo].has-img').length,_ph=el.querySelectorAll('.ph-img').length;
-      setTimeout(function(){alert('ДИАГНОСТИКА Серии: слайд '+sr.width.toFixed(0)+'×'+sr.height.toFixed(0)+'; найдено has-img ячеек: '+_dbg+'; ph-img всего: '+_ph);},50);
+      var _cells=el.querySelectorAll('[data-photo].has-img'),_dbg=_cells.length;
+      var _w=0,_h=0,_nw=0,_cl='';
+      if(_cells[0]){var _im=_cells[0].querySelector('.ph-img');var _r=_cells[0].getBoundingClientRect();_w=_r.width;_h=_r.height;_nw=_im?(_im.naturalWidth||0):0;_cl=_cells[0].className;}
+      setTimeout(function(){alert('ДИАГНОСТИКА Серии:\nслайд '+sr.width.toFixed(0)+'×'+sr.height.toFixed(0)+'\nhas-img ячеек: '+_dbg+'\nпервая ячейка: '+_w.toFixed(0)+'×'+_h.toFixed(0)+', класс=['+_cl+']\nnaturalWidth фото: '+_nw);},50);
     }
     el.querySelectorAll('[data-photo].has-img, .frame.has-img').forEach(function(p){
       if(window._skipVids&&p.dataset.vidId)return; /* пропуск photo-видео при рендере bg для serverCompose */
