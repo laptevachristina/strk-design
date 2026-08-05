@@ -1542,7 +1542,6 @@ function setPhoto(slot,file){
   var r=new FileReader();
   r.onload=function(){
     var img=slot.querySelector('.ph-img');
-    img.onload=function(){applyTransform(slot);};
     img.src=r.result;img.style.display='block';
     slot.classList.add('has-img');
     slot.dataset.scale=1;slot.dataset.x=0;slot.dataset.y=0;applyTransform(slot);applyPhotoFx(slot);
@@ -1555,7 +1554,6 @@ function setPhotoKeep(slot,file){
   var r=new FileReader();
   r.onload=function(){
     var img=slot.querySelector('.ph-img');
-    img.onload=function(){applyTransform(slot);};
     img.src=r.result;img.style.display='block';
     slot.classList.add('has-img');
     /* сохраняем scale/x/y — не сбрасываем */
