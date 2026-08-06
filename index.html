@@ -1,4 +1,4 @@
-<!--seal-github-v132|animate-route-fix+photo-video-->
+<!--seal-github-v133|animate-route-fix+photo-video-->
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -2176,13 +2176,15 @@ function applyVidFx(vc){
 }
 /* Программный аналог CSS-filter (ctx.filter в Сафари не работает). */
 function _parseFxFilters(str){
-  var ops={br:1,co:1,sa:1,gr:0,se:0,hu:0},m;
-  if(m=str.match(/brightness\(([\d.]+)\)/))ops.br=+m[1];
-  if(m=str.match(/contrast\(([\d.]+)\)/))ops.co=+m[1];
-  if(m=str.match(/saturate\(([\d.]+)\)/))ops.sa=+m[1];
-  if(m=str.match(/grayscale\(([\d.]+)\)/))ops.gr=+m[1];
-  if(m=str.match(/sepia\(([\d.]+)\)/))ops.se=+m[1];
-  if(m=str.match(/hue-rotate\(([\d.]+)\)/))ops.hu=+m[1];
+  var ops={br:1,co:1,sa:1,gr:0,se:0,hu:0};
+  function mul(re){var ms=str.match(re),p=1.0;if(ms){ms.forEach(function(m){p*=+m.match(/[\d.]+/)[0];});}return p;}
+  function one(re){var m=str.match(re);return m?+m[0].match(/-?[\d.]+/)[0]:0;}
+  ops.br=mul(/brightness\([\d.]+\)/g);
+  ops.co=mul(/contrast\([\d.]+\)/g);
+  ops.sa=mul(/saturate\([\d.]+\)/g);
+  ops.gr=one(/grayscale\([\d.]+\)/);
+  ops.se=one(/sepia\([\d.]+\)/);
+  ops.hu=one(/hue-rotate\(-?[\d.]+/);
   return ops;
 }
 function applyPixelFx(octx,w,h,fx){
