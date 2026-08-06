@@ -1,4 +1,4 @@
-<!--seal-github-v133|animate-route-fix+photo-video-->
+<!--seal-github-v134|animate-route-fix+photo-video-->
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -3003,6 +3003,55 @@ function serverAnimate(el,btn){
     throw e;
   });
 }
+function serverAnimateVid(el,btn){
+  /* 1 видео + анимированные стикеры/текст: кадры анимации БЕЗ видео + видео-дорожка со звуком на /animate */
+  if(typeof previewReset==='function')previewReset();
+  var items=getAnimItems(el);
+  var spinMode=hasSpinningSticker(items);
+  var typeSchedule=buildTypeSchedule(items);
+  var fullMs=computeFullMs(el);
+  var w=540,h=el.classList.contains('f916')?960:675,ES=2;
+  var fps=12;
+  var frameCount=Math.max(1,Math.min(360,Math.ceil(fullMs/1000*fps)));
+  var vc=el.querySelector('.vidclip')||el.querySelector('.photo[data-vid-id]');
+  var v=vc?vc.querySelector('video'):null;
+  if(!v||!v.duration||!isFinite(v.duration))return Promise.reject(new Error('видео не готово'));
+  var x=Math.round(vc.offsetLeft*ES),y=Math.round(vc.offsetTop*ES),vw=Math.round(vc.offsetWidth*ES),vh=Math.round(vc.offsetHeight*ES);
+  var vz=1,pvx=0,pvy=0;
+  if(vc.classList.contains('photo')){vz=parseFloat(vc.dataset.scale)||1;pvx=Math.round((parseFloat(vc.dataset.x)||0)*ES);pvy=Math.round((parseFloat(vc.dataset.y)||0)*ES);}
+  else{vz=parseFloat(vc.dataset.czoom)||1;pvx=Math.round((parseFloat(vc.dataset.cpanx)||0)*vw*0.45);pvy=Math.round((parseFloat(vc.dataset.cpany)||0)*vh*0.45);}
+  var vparams={vz:vz,vx:pvx,vy:pvy,fx:photoFilterOf(vc)};
+  function showP(frac){if(btn)btn.textContent='⏳ '+Math.round(Math.max(0,Math.min(1,frac))*100)+'%';}
+  showP(0.02);
+  var fd=new FormData(),k=0;
+  function nextFrame(){
+    if(k>=frameCount)return Promise.resolve();
+    var elapsed=k*(1000/fps);
+    var anim=animStateAt(items,elapsed,spinMode,typeSchedule,fullMs);
+    window._skipVids=true;
+    return renderSlideCanvas(el,anim,null).then(function(c){
+      window._skipVids=false;
+      if(!c)throw new Error('рендер кадра не удался');
+      return new Promise(function(res){c.toBlob(function(b){res(b);},'image/jpeg',0.82);});
+    }).then(function(blob){
+      if(blob)fd.append('frame'+k,blob);
+      k++;showP(0.25+0.55*(k/frameCount));return nextFrame();
+    });
+  }
+  return nextFrame().then(function(){
+    fd.append('meta',JSON.stringify({fps:fps,width:w,height:h,hasVideo:true,duration:frameCount/fps,frameCount:frameCount}));
+    fd.append('videoPos',JSON.stringify({x:x,y:y,w:vw,h:vh}));
+    fd.append('vparams',JSON.stringify(vparams));
+    if(btn)btn.textContent='⏳ сервер…';
+    return fetch(v.src).then(function(r){return r.blob();}).then(function(vb){fd.append('video',vb,'in.mp4');return fetch(SEAL_SERVER+'/animate',{method:'POST',body:fd});});
+  }).then(function(r){
+    if(!r.ok)return r.text().then(function(t){throw new Error('server '+(r.status||'')+': '+t.slice(0,160));});
+    return r.blob();
+  }).then(function(blob){
+    if(btn)btn.textContent=btn.dataset.oldText||'';
+    return {blob:blob,mime:'video/mp4'};
+  });
+}
 function slideToPNG(el){
   if(typeof previewReset==='function')previewReset();
   return renderSlideCanvas(el,null).then(function(c){
@@ -3213,11 +3262,8 @@ function animStateAt(items,elapsedMs,spinMode,typeSchedule,fullMs){
         else if(it.dataset.stout==='spinout'){rotOffset+=to*to*4*Math.PI;scale*=to;opacity*=to;}
       }
     }else if(!spinMode){
-      var sMs=i*ANIM_STAGGER;
-      var t=(elapsedMs-sMs)/ANIM_DUR;
-      t=Math.max(0,Math.min(1,t));
-      var eased=1-Math.pow(1-t,3);
-      opacity=eased;dy=0;
+      /* не-стикеры (фото/рамки/текст без явной анимации) — статичные, без fade-in */
+      opacity=1;dy=0;
     }
     state.set(it,{opacity:opacity,dy:dy,scale:scale,rotOffset:rotOffset,revealChars:revealChars,typing:typing});
   });
@@ -3372,6 +3418,17 @@ if(gifBtn)gifBtn.addEventListener('click',function(){
     var _vidClips=el.querySelectorAll('.vidclip video, .photo[data-vid-id] video').length;
     if(_vidClips>=2){
       return serverAnimate(el,btn).then(function(r){
+        videoExportBusy=false;btn.disabled=false;btn.textContent=oldText;
+        if(r&&r.blob)openVideoModal(r.blob,r.mime);
+      },function(e){
+        videoExportBusy=false;btn.disabled=false;btn.textContent=oldText;
+        var reason=(e&&(e.message||e.error||e))||'неизвестно';
+        if(typeof reason!=='string'){try{reason=JSON.stringify(reason)}catch(_){reason=String(reason)}}
+        alert('Видео не собралось: '+reason);
+      });
+    }
+    if(_vidClips===1 && el.querySelector('.sticker')){
+      return serverAnimateVid(el,btn).then(function(r){
         videoExportBusy=false;btn.disabled=false;btn.textContent=oldText;
         if(r&&r.blob)openVideoModal(r.blob,r.mime);
       },function(e){
