@@ -1,4 +1,4 @@
-<!--seal-github-v131|animate-route-fix+photo-video-->
+<!--seal-github-v132|animate-route-fix+photo-video-->
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -2814,7 +2814,7 @@ function renderSlideCanvas(el,animState,videoFrameMap){
       var im=st.querySelector('img');if(!im)return;
       if(im._prerendered)im=im._prerendered;
       else if(!im.complete)return;
-      if(!im.videoWidth&&!im.naturalWidth)return;
+      if(!(im.videoWidth||im.naturalWidth||im.width||0))return;
       var a=animState&&animState.get(st);
       var rec={img:im,x:st.offsetLeft,y:st.offsetTop,W:st.offsetWidth,H:st.offsetHeight,
         rot:(parseFloat(st.dataset.rot)||0)*Math.PI/180+(a&&a.rotOffset||0),
@@ -3509,6 +3509,7 @@ if(gifBtn)gifBtn.addEventListener('click',function(){
       tick();
       return stopped.then(function(blob){
         prepared.forEach(function(p){p.res.frames.length=0;}); /* отпускаем ссылки на кадры-canvas'ы, чтобы GC забрал память */
+        el.querySelectorAll('.sticker img').forEach(function(img){img._prerendered=null;});
         return {blob:blob,mime:mime};
       });
     });
