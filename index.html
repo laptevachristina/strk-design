@@ -1,4 +1,4 @@
-<!--seal-github-v130|animate-route-fix+photo-video-->
+<!--seal-github-v131|animate-route-fix+photo-video-->
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -551,7 +551,7 @@ header .logo b{color:var(--ui-acc);font-weight:700}
     <div class="fx-note">Применится к выбранной рамке или к основному фото слайда. Сохраняется в слайд и в экспорт.</div>
     <button class="fx-reset" id="fxReset">Сброс</button>
   </div>
-  
+  <div class="fx-row" id="phVeditRow" style="display:none"><button class="fx-chip" id="phVedit">✂ Монтаж видео</button></div>
 </div>
 <div class="vidclipfx dd" id="vidclipfx">
   <div class="fx-title">Видео-клип</div>
@@ -1903,6 +1903,7 @@ document.querySelectorAll('.dd-btn').forEach(function(b){b.addEventListener('cli
   });
   var rs=document.getElementById('fxReset');
   if(rs)rs.addEventListener('click',function(e){e.stopPropagation();var el=targetPhoto();if(!el)return;el.dataset.fxpreset='none';delete el.dataset.fxbright;delete el.dataset.fxcontrast;delete el.dataset.fxsat;delete el.dataset.fxwarm;applyPhotoFx(el);syncPhotoFxUI();updateFilm();pushHistory();});
+  var pvb=document.getElementById('phVedit');if(pvb)pvb.addEventListener('click',function(e){e.stopPropagation();var el=targetPhoto();if(!el||!el.dataset.vidId)return;if(typeof openVedit==='function')openVedit(el);});
 })();
 /* video clip fx handlers */
 (function(){
@@ -2238,6 +2239,8 @@ function syncPhotoFxUI(){
     var inp=document.getElementById('fx'+pair[0]),sp=document.getElementById('fx'+pair[0]+'V');
     if(inp)inp.value=val;if(sp)sp.textContent=val;
   });
+  var vr=document.getElementById('phVeditRow');
+  if(vr)vr.style.display=(el&&el.dataset&&el.dataset.vidId)?'flex':'none';
 }
 /* ---- video clip editor: trim + timeline window ---- */
 function targetVidClip(){
