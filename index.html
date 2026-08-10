@@ -1993,6 +1993,7 @@ document.addEventListener('click',function(){document.querySelectorAll('.dd.open
 
 /* ---- render ---- */
 function fit(){
+  try{window.__zFit=(window.__zFit||0)+1;}catch(_){}
   var s=slides[cur];if(!s)return;
   var h=s.el.classList.contains('f916')?960:675;
   var availW=stage.clientWidth-24,availH=stage.clientHeight-24;
@@ -2063,8 +2064,34 @@ function _updateFilmNow(){
   film.scrollLeft=_sl;
 }
 
-window.addEventListener('resize',fit);
-if(window.visualViewport){window.visualViewport.addEventListener('resize',fit);}
+/* === ЗОНД: пульсация fit() === */
+window.__zVV=0;
+window.addEventListener('resize',function(){window.__zFit=(window.__zFit||0)+1;fit();});
+if(window.visualViewport){window.visualViewport.addEventListener('resize',function(){window.__zVV=(window.__zVV||0)+1;window.__zFit=(window.__zFit||0)+1;fit();});}
+(function(){
+  var d=document.createElement('div');
+  d.id='__zond';d.style.cssText='position:fixed;top:42px;right:6px;z-index:99999;background:#E5097F;color:#fff;font:600 11px/1.35 monospace;padding:4px 6px;border-radius:6px;pointer-events:none;white-space:pre;max-width:62vw;overflow:hidden';
+  document.body.appendChild(d);
+  var last=0,lastVV=0;
+  setInterval(function(){
+    var f=window.__zFit||0,vv=window.__zVV||0;
+    var fps=f-last,vps=vv-lastVV;last=f;lastVV=vv;
+    var info='fit:'+fps+'/с vv:'+vps+'/с';
+    try{
+      var s=slides[cur];
+      var t=s&&s.el.querySelector('[data-edit]');
+      if(t){
+        var lh=parseFloat(getComputedStyle(t).lineHeight)||parseFloat(t.style.fontSize)||20;
+        var lines=Math.round(t.scrollHeight/lh);
+        info+='\\nстрок:'+lines+' h:'+Math.round(t.scrollHeight);
+        if(typeof window.__zLines==='undefined')window.__zLines=lines;
+        if(lines!==window.__zLines){info='⚠️ПРЫЖОК '+window.__zLines+'→'+lines+'\\n'+info;window.__zLines=lines;}
+      }
+    }catch(_){}
+    var el=document.getElementById('__zond');if(el)el.textContent=info;
+  },250);
+})();
+/* === /ЗОНД === */
 stage.addEventListener('pointerdown',function(e){if(e.target.closest('#veditModal')||e.target.closest('#retModal'))return;if(typeof previewReset==='function')previewReset();if(!e.target.closest('.frame'))document.querySelectorAll('.frame.sel').forEach(function(f){f.classList.remove('sel');});if(!e.target.closest('.sticker')){document.querySelectorAll('.sticker.sel').forEach(function(s){s.classList.remove('sel');});if(typeof closeStickerFx==='function')closeStickerFx();}if(!e.target.closest('.vidclip')){document.querySelectorAll('.vidclip.sel').forEach(function(v){v.classList.remove('sel');});if(typeof closeVidClipFx==='function')closeVidClipFx();}},true);
 /* long-press (500мс без движения) на фото/видео → заменить медиа, сохранив пропорции */
 (function(){
