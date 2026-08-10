@@ -16,8 +16,8 @@
   header{flex-wrap:nowrap!important;overflow-x:auto;-webkit-overflow-scrolling:touch;gap:6px}
   header .grow{min-width:0!important}
   .ctl-top{flex-wrap:nowrap!important;gap:5px;overflow-x:auto;-webkit-overflow-scrolling:touch}
-  .ctl-top .hbtn{padding:5px 7px;font-size:10.5px;flex:0 0 auto;white-space:nowrap}
-  .ctl-top .hbtn.iconbtn{padding:6px 9px;font-size:15px}
+  .ctl-top .hbtn{padding:4px 6px;font-size:10px;flex:0 0 auto;white-space:nowrap}
+  .ctl-top .hbtn.iconbtn{padding:5px 7px;font-size:14px}
   .ctl-top .btn-grp{gap:3px}
   .fmtbar,.fx-row,.ret-bar,.vedit-sp{flex-wrap:nowrap!important;overflow-x:auto;-webkit-overflow-scrolling:touch}
   .fmtbar button,.fx-chip,.ret-bar .hbtn,.vedit-sp>*{flex:0 0 auto;white-space:nowrap}
@@ -711,11 +711,18 @@ header .logo b{color:var(--ui-acc);font-weight:700}
 
 /* ---- palette ---- */
 var COLORS=[
-  {k:'milk',  c:'#FBFAF4', name:'Молочный'},
-  {k:'white', c:'#FFFFFF', name:'Белый'},
-  {k:'graphite',c:'#1C1C1C',name:'Чёрный', dark:true},
-  {k:'sage',  c:'#E5097F', name:'Фуксия', dark:true},
-  {k:'blush', c:'#F6C9E1', name:'Бледно-розовый'}
+  {k:'pink',    c:'#E5097F', name:'Фуксия', dark:true},
+  {k:'cream',   c:'#FBFAF4', name:'Молочный'},
+  {k:'white',   c:'#FFFFFF', name:'Белый'},
+  {k:'grey',    c:'#6E6E6E', name:'Серый', dark:true},
+  {k:'gold',    c:'#D8C48D', name:'Золотой беж'},
+  {k:'mint',    c:'#A8E0CB', name:'Мята'},
+  {k:'silver',  c:'#E2E4E2', name:'Светло-серый'},
+  {k:'black',   c:'#1C1C1C', name:'Чёрный', dark:true},
+  {k:'terra',   c:'#D08A6E', name:'Терракота', dark:true},
+  {k:'lavender',c:'#A98BC9', name:'Лаванда', dark:true},
+  {k:'olive',   c:'#7E8461', name:'Олива', dark:true},
+  {k:'taupe',   c:'#9A897A', name:'Таупе', dark:true}
 ];
 /* выбор цвета текста */
 (function(){
@@ -766,36 +773,36 @@ function tpl(type){
     return '<div class="series-wrap"><div class="series-grid">'+cells+'</div></div>';
   })(),
   cover:
-    '<div class="photo cover-photo" data-photo><div class="ph-label">нажми и добавь фото на весь слайд</div></div>'+
+    '<div class="photo cover-photo" data-photo><div class="ph-label">добавь своё фото на весь слайд</div></div>'+
     '<div class="cover-scrim"></div>'+
     '<div class="pad bottom on-photo">'+
-      '<div class="kicker" data-edit data-ph="НАДЗАГОЛОВОК">разбор гардероба</div>'+
-      '<div class="h big" data-edit data-ph="Крупный заголовок" style="margin:8px 0 12px">идеального гардероба не существует</div>'+
-      '<div class="sub" data-edit data-ph="Подзаголовок">думала я, пока не собрала свой</div>'+
+      '<div class="kicker" data-edit data-ph="НАДЗАГОЛОВОК">твоё пространство</div>'+
+      '<div class="h big" data-edit data-ph="Крупный заголовок" style="margin:8px 0 12px">Привет, звезда креатива!</div>'+
+      '<div class="sub" data-edit data-ph="Подзаголовок">Добро пожаловать в твоё персональное рабочее пространство. С чего начнём?</div>'+
     '</div>',
   quote:
     '<div class="pad center">'+
-      '<div class="kicker" data-edit data-ph="надзаголовок" style="margin-bottom:18px">капсула</div>'+
-      '<div class="h big" data-edit data-ph="Главная мысль" style="margin-bottom:20px">5 вещей, которые носишь на всё</div>'+
-      '<div class="body" data-edit data-ph="Пояснение" style="max-width:420px">и почему остальное только запутывает утро</div>'+
+      '<div class="kicker" data-edit data-ph="надзаголовок" style="margin-bottom:18px">идея</div>'+
+      '<div class="h big" data-edit data-ph="Главная мысль" style="margin-bottom:20px">Давай добавим твою историю?</div>'+
+      '<div class="body" data-edit data-ph="Пояснение" style="max-width:420px">Здесь появится твой текст — расскажи о себе</div>'+
     '</div>',
   collage:
     '<div class="collage-canvas" data-canvas></div>'+
     '<div class="pad" style="padding-bottom:0">'+
-      '<div class="h mid" data-edit data-ph="Заголовок">собрала образы из того, что уже есть</div>'+
+      '<div class="h mid" data-edit data-ph="Заголовок">Давай сделаем новый коллаж?</div>'+
     '</div>',
   cta:
     '<div class="pad">'+
-      '<div class="h mid" data-edit data-ph="Заголовок" style="margin-bottom:16px">как проходит разбор</div>'+
-      '<div class="body" data-edit data-ph="Список" style="margin-bottom:26px">— разбираем, что уже есть<br>— находим <span class="u">твои</span> формы и цвета<br>— собираем готовые образы</div>'+
-      '<span class="pill" data-edit data-ph="Кнопка">листай дальше&nbsp;&nbsp;<span class="arw">→</span></span>'+
+      '<div class="h mid" data-edit data-ph="Заголовок" style="margin-bottom:16px">С чего начнём сегодня?</div>'+
+      '<div class="body" data-edit data-ph="Список" style="margin-bottom:26px">— новый коллаж<br>— <span class="u">твоя история</span><br>— свежая идея</div>'+
+      '<span class="pill" data-edit data-ph="Кнопка">поехали&nbsp;&nbsp;<span class="arw">→</span></span>'+
     '</div>',
   final:
     '<div class="collage-canvas" data-canvas></div>'+
     '<div class="pad center" style="justify-content:flex-end;padding-bottom:46px">'+
-      '<div class="h mid" data-edit data-ph="Финал" style="margin-bottom:14px">запишись на разбор гардероба</div>'+
-      '<div class="sub" data-edit data-ph="Подпись" style="margin-bottom:24px">напиши мне слово «стиль»</div>'+
-      '<span class="pill" data-edit data-ph="Кнопка">написать&nbsp;&nbsp;<span class="arw">→</span></span>'+
+      '<div class="h mid" data-edit data-ph="Финал" style="margin-bottom:14px">STRK DESIGN</div>'+
+      '<div class="sub" data-edit data-ph="Подпись" style="margin-bottom:24px">твоё рабочее пространство</div>'+
+      '<span class="pill" data-edit data-ph="Кнопка">начать&nbsp;&nbsp;<span class="arw">→</span></span>'+
     '</div>',
   splitB:
     '<div class="photo" data-photo style="position:absolute;left:0;right:0;top:0;height:60%;border-radius:0"><div class="ph-label">нажми — фото сверху</div></div>'+
@@ -842,7 +849,7 @@ function makeSlide(type,bg,html,f916){
   var el=document.createElement('div');
   var wide=(f916!==undefined?f916:format==='916');
   el.className='slide'+(wide?' f916':'');
-  el.dataset.type=type;el.dataset.bg=bg||'milk';
+  el.dataset.type=type;el.dataset.bg=bg||'cream';
   if(html!==undefined){
     el.innerHTML=html;
   }else{
