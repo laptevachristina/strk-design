@@ -3025,7 +3025,12 @@ function renderSlideCanvas(el,animState,videoFrameMap){
         var ce=cloneTexts[i];if(!ce)return;
         ce.style.opacity=String(a.opacity);
         ce.style.transform='translateY('+a.dy+'px)';
-        if(a.revealChars!=null)truncateVisibleText(ce,a.revealChars,a.typing);
+        if(a.revealChars!=null){
+          /* фикс пульсации: зафиксировать высоту блока по ПОЛНОМУ тексту,
+             чтобы перенос слова при печати не дёргал соседние блоки (заголовок и т.д.) */
+          ce.style.minHeight=orig.scrollHeight+'px';
+          truncateVisibleText(ce,a.revealChars,a.typing);
+        }
       });
     }
     if(parent){parent.insertBefore(el,next);}else if(el.parentNode){el.parentNode.removeChild(el);}
