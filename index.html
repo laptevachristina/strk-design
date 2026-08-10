@@ -404,7 +404,7 @@ header .logo b{color:var(--ui-acc);font-weight:700}
   .seg{flex:0 0 auto;padding:1px}
   .seg button{padding:5px 6px;font-size:10px}
   .hbtn{padding:8px 11px;font-size:12px;flex:0 0 auto}
-  .ctl-top{gap:4px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .ctl-top{gap:4px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;flex-shrink:0;min-height:-webkit-min-content;min-height:min-content}
   .ctl-top .hbtn{padding:5px 7px;font-size:10.5px;flex:0 0 auto;white-space:nowrap;line-height:1.2}
   .ctl-top .hbtn.iconbtn{padding:5px 7px;font-size:15px;line-height:1}
   .ctl-top .btn-grp{gap:2px;flex:0 0 auto}
@@ -3931,35 +3931,6 @@ function openVideoModal(blob,mime){
   document.getElementById('modal').classList.add('open');
 }
 
-/* ===ЗОНД-ПАНЕЛИ=== */
-(function(){
-  function g(sel){var el=document.querySelector(sel);if(!el)return null;var r=el.getBoundingClientRect();var cs=getComputedStyle(el);return {el:el,t:Math.round(r.top),b:Math.round(r.bottom),l:Math.round(r.left),w:Math.round(r.width),h:Math.round(r.height),disp:cs.display,vis:cs.visibility,op:cs.opacity,pos:cs.position,z:cs.zIndex,oh:el.offsetHeight};}
-  function efp(x,y){var el=document.elementFromPoint(x,y);if(!el)return 'NULL';return (el.className&&el.className.toString?el.className:el.tagName)+'/'+el.tagName;}
-  function snap(){
-    var c=g('.controls');if(!c)return 'controls=НЕТ';
-    var ct=g('.ctl-top');
-    var st=g('.stage');
-    var app=g('.app');
-    var ih=window.innerHeight||-1;
-    // что рисуется поверх точки, где должна быть первая кнопка ctl-top
-    var px=(ct?ct.l+30:c.l+30), py=(ct?ct.t+12:c.t+12);
-    var over=efp(px,py);
-    var over2=efp(px,(c.t+c.h-12));
-    var out='ih='+ih;
-    out+='\nCTL disp='+c.disp+' vis='+c.vis+' op='+c.op+' pos='+c.pos+' z='+c.z+' top='+c.t+' bot='+c.b+' h='+c.h;
-    out+='\nctltop '+(ct?('t='+ct.t+' b='+ct.b+' h='+ct.h+' oh='+ct.oh+' disp='+ct.disp):'НЕТ');
-    out+='\nstage '+(st?('b='+st.b):'?');
-    out+='\nbot-ih='+(c.b-ih)+' (0=вровень, +срез)';
-    out+='\nпод кнопкой: '+over;
-    out+='\nпод низом: '+over2;
-    return out;
-  }
-  var d=document.createElement('div');d.id='zpan';
-  d.style.cssText='position:fixed;top:4px;left:3px;z-index:999999;background:#E5097F;color:#fff;font:700 10px/1.4 monospace;padding:5px 6px;border-radius:6px;pointer-events:none;white-space:pre;max-width:97vw;max-height:85vh;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.6)';
-  document.body.appendChild(d);
-  var cnt=0;
-  setInterval(function(){var el=document.getElementById('zpan');if(!el)return;cnt++;try{el.textContent='ЗОНД2 #'+cnt+'\n'+snap();}catch(e){el.textContent='ERR '+e.message;}},500);
-})();
 /* ---- start ---- */
 /* ---- feed grid planner ---- */
 var feed=new Array(12).fill(null);var FEED_KEY='feed_'+location.pathname;
