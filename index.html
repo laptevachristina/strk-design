@@ -3931,6 +3931,25 @@ function openVideoModal(blob,mime){
   document.getElementById('modal').classList.add('open');
 }
 
+/* ===ЗОНД-ПАНЕЛИ=== */
+(function(){
+  function stk(){try{throw new Error('z');}catch(e){return e.stack.split('\n').slice(2,7).map(function(l){return l.replace(/.*\/|https?:[^ ]*\//,'').trim();}).join(' | ');}}
+  var log=[];var last=null;
+  function rec(type,extra){var c=document.querySelector('.controls');var d=c?getComputedStyle(c).display:'?';var w=c?Math.round(c.getBoundingClientRect().width):0;var h=c?Math.round(c.getBoundingClientRect().height):0;var info=type+' disp='+d+' '+w+'x'+h+(extra?(' '+extra):'')+' :: '+stk();log.push(info);if(log.length>30)log.shift();last={d:d,w:w,h:h,t:type};}
+  function bind(){
+    var c=document.querySelector('.controls');if(!c||c.__zb){return;}c.__zb=1;
+    var mo=new MutationObserver(function(ms){ms.forEach(function(m){if(m.type==='attributes')rec('ATTR['+m.attributeName+']',m.oldValue||'');else rec('CHILD');});});
+    mo.observe(c,{attributes:true,attributeOldValue:true,attributeFilter:['style','class'],childList:true});
+    var ro=new ResizeObserver(function(){rec('RESIZE');});ro.observe(c);
+    var ct=document.querySelector('.ctl-top');if(ct){var mo2=new MutationObserver(function(ms){ms.forEach(function(m){rec('CTLTOP['+m.type+']');});});mo2.observe(ct,{attributes:true,attributeOldValue:true,childList:true,subtree:true});}
+  }
+  bind();setTimeout(bind,300);setTimeout(bind,1500);
+  var d=document.createElement('div');d.id='zpan';
+  d.style.cssText='position:fixed;top:6px;left:4px;z-index:99999;background:#E5097F;color:#fff;font:700 10px/1.35 monospace;padding:5px 6px;border-radius:6px;pointer-events:none;white-space:pre;max-width:96vw;max-height:80vh;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.5)';
+  document.body.appendChild(d);
+  setInterval(function(){var el=document.getElementById('zpan');if(!el)return;var head='ЗОНД-ПАНЕЛИ событий:'+log.length+(last?(' | посл:'+last.d+' '+last.w+'x'+last.h+' '+last.t):'');el.textContent=head+'\n—— последние ——\n'+log.slice(-4).join('\n');},400);
+  window.__zPan={log:log};
+})();
 /* ---- start ---- */
 /* ---- feed grid planner ---- */
 var feed=new Array(12).fill(null);var FEED_KEY='feed_'+location.pathname;
